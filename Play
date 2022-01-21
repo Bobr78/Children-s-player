@@ -1,0 +1,190 @@
+
+import wx
+import time
+import pygame
+import imageio
+import os
+from mutagen.mp3 import MP3 # https://mutagen.readthedocs.io/en/latest/user/gettingstarted.html
+
+pygame.init()		#не знаю зачем, но иначе не работает, а может и работает - надо попробывать
+pygame.mixer.init() 	#не знаю зачем, но иначе не работает, а может и работает - надо попробывать
+IMAGE_PATH_BG = "D:\PY\BG.png"
+IMAGE_PATH_M = "D:\PY\M.png"
+im = imageio.imread(IMAGE_PATH_M)
+
+class Book:
+
+    def __init__ (self, add): 				#инициализация
+        self.root_dir=add 				#инициализация каталога с книгой, пока считаем что вложенных папок нет
+        self.flag=1			 		#флаг для работы с паузой
+        self.list_mp3_target=[] 	#указатель на текущую позицию воспроизведения файла - возможно нафиг ненужен
+        self.i=0					#номер проигрываемого файла из списка
+        self.j=0					#номер проигрываемой позиции в файле
+        self.v=0.5					#громкость 50%
+        self.list_mp3=[]					#создаем пустой список в формате имя файла/время воспроизведения
+        folder=[]
+        # Получаем список файлов и параметров файла	
+
+        for i in os.walk(self.root_dir):		#получаем список подкаталогов и файлов каталога, возможно этот и следующий цикл можно объеденить
+            folder.append(i) 
+
+        for address, dirs, files in folder:
+            for file in files:
+                if os.path.splitext(address+file)[1]=='.mp3':
+                    audio = MP3(address+file)
+                    self.list_mp3.append((address+file,audio.info.length,0)) #составляет список файлов mp3
+									#возможно тудаже закидываем навазние песни и т.п.->
+									#audio["title"]-дает название титла,
+									#еще ключевые слова: album, artist... 
+									#mutagen.File(audio)- весь список свойств файла 
+
+                if os.path.splitext(address+file)[1]=='.png' or os.path.splitext(address+file)[1]=='.jpg': #выбираем картинки
+                    self.image= pygame.image.load(address+file) 				
+
+        self.list_mp3.sort()		#сортируем список файлов чтобы озвучивать в правильном порядке
+        self.len=len(self.list_mp3)	#длинна списка
+		
+    def play(self,i=0,j=0):
+        self.i=i	
+        self.j=j	
+        pygame.mixer.music.load(self.list_mp3[self.i][0]) 	#устанавливает номер файла в списке который нужно проигрывать - список даст его адрес. 
+#		pygame.mixer.music.set_pos(self.j)			#устанавливает позицию прослушивания - mp3 не поддерживает установку позиции!!!!
+        pygame.mixer.music.play()				#теоретически должен стартовать нужный файл с указанной позиции
+
+	#возвращает позицию воспроизведения текущего фрагмента ввиде списка первое значение номер файла, второе позиция в нем (ну должен по крайней мере вернуть)
+    def get_pos(self): 
+        return(self.i,self.j)
+
+    def pause(self):
+        if self.flag==1:
+            pygame.mixer.music.pause()
+            self.flag=0
+        else:
+            pygame.mixer.music.unpause()
+            self.flag=1
+
+    def stop(self):
+        pygame.mixer.music.stop()
+
+    def volume(self,v): 	#подразумевается что врядли кто будет устанавливать звук отрицательным...
+        if self.v>1:self.v=1.0
+        pygame.mixer.music.set_volume(self.v)
+
+    def next(self,i):	#загружает в очередь следующий файл - возможно уже ненужная функция
+        pygame.mixer.music.queue(self.list_mp3[i][0])
+
+#конец описания класса
+
+
+class ShapedFrame(wx.Frame):
+    def __init__(self):
+        wx.Frame.__init__(self, None, -1, "Shaped Window",
+                style = wx.FRAME_SHAPED | wx.SIMPLE_BORDER )
+        self.hasShape = False
+        self.delta = wx.Point(0,0)
+        self.im = imageio.imread(IMAGE_PATH_BG)
+        # Load the image
+
+        self.bmp = wx.Image(IMAGE_PATH_BG, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        #self.bmp = wx.Bitmap(image)
+
+        self.transparentColour = wx.Colour(21, 85, 55, alpha=wx.ALPHA_OPAQUE)
+
+        self.SetClientSize((self.bmp.GetWidth(), self.bmp.GetHeight()))
+        dc = wx.ClientDC(self)
+        dc.DrawBitmap(self.bmp, 0,0, True)
+        self.SetWindowShape()
+        self.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_MOTION, self.OnMouseMove)
+        self.Bind(wx.EVT_RIGHT_UP, self.OnExit)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_WINDOW_CREATE, self.SetWindowShape)
+        self.MUSIC_END = pygame.USEREVENT+1
+        pygame.mixer.music.set_endevent(self.MUSIC_END)
+
+        self.timer = wx.Timer(self)
+        self.timer.Start(1000)
+        self.Bind(wx.EVT_TIMER, self.update, self.timer)
+
+    #инициализируем класс книга
+        rut="D:\PY\\"
+        self.B=Book(rut) 
+        print("инициированна книга")
+        self.i_play=0
+        self.j_play=0
+ 
+    def update(self, event):
+        print ("updated: ")
+        print (time.ctime())
+        
+#-------------------------
+
+    def SetWindowShape(self, evt=None):
+        r = wx.Region(self.bmp , self.transparentColour)
+        self.hasShape = self.SetShape(r)
+
+    def OnDoubleClick(self, evt):
+        if self.hasShape:
+           self.SetShape(wx.Region())
+           self.hasShape = False
+        else:
+           self.SetWindowShape()
+
+    def OnPaint(self, evt):
+        dc = wx.PaintDC(self)
+        dc.DrawBitmap(self.bmp, 0, 0, True)
+
+    def OnExit(self, evt):
+        self.Close()
+
+    def OnLeftDown(self, evt):
+        self.CaptureMouse()
+        pos = self.ClientToScreen(evt.GetPosition())
+        origin = self.GetPosition()
+        self.delta = wx.Point(pos.x - origin.x, pos.y - origin.y)
+        absol=(wx.Point(self.ClientToScreen(evt.GetPosition()).x - self.GetPosition().x, self.ClientToScreen(evt.GetPosition()).y - self.GetPosition().y))
+        #self.choice=im[(absol.y-1,absol.x-1),0] #запоминаем выбор кнопки 
+        if im[(absol.y-1,absol.x-1,0)]==255: 
+            print("выбрал воспроизведение")
+            self.B.play(self.i_play,self.j_play)
+        if im[(absol.y-1,absol.x-1,0)]==200:
+            print("выбрал паузу")
+            self.B.pause()
+        if im[(absol.y-1,absol.x-1,0)]==150:
+            print("выбрал стоп")
+            self.B.stop()
+            self.i_play=0
+            self.j_play=0
+        
+  
+
+    def OnMouseMove(self, evt):
+        if evt.Dragging() and evt.LeftIsDown():
+            pos = self.ClientToScreen(evt.GetPosition())
+            newPos = (pos.x - self.delta.x, pos.y - self.delta.y)
+            self.Move(newPos)
+        #else: #print(wx.Point(self.ClientToScreen(evt.GetPosition()).x - self.GetPosition().x, self.ClientToScreen(evt.GetPosition()).y - self.GetPosition().y))
+        #     absol=(wx.Point(self.ClientToScreen(evt.GetPosition()).x - self.GetPosition().x, self.ClientToScreen(evt.GetPosition()).y - self.GetPosition().y))
+        #     print (absol.x-1, absol.y-1)
+        #     print(im[(absol.y-1,absol.x-1)])
+        #     print(im[(absol.y-1,absol.x-1,0)]) #отслеживает канал R
+
+
+
+    def OnLeftUp(self, evt):
+        #absol=(wx.Point(self.ClientToScreen(evt.GetPosition()).x - self.GetPosition().x, self.ClientToScreen(evt.GetPosition()).y - self.GetPosition().y))
+        if self.HasCapture(): 
+        #    if self.choice == im[(absol.y-1,absol.x-1)]: #выбор кнопки плеера не изсменился при отпускании мышки
+         #       print("я не передумал, кнопка", im[(absol.y-1,absol.x-1)])
+            self.ReleaseMouse()
+
+
+
+app = wx.App()
+ShapedFrame().Show()
+app.MainLoop()
+
+
+
