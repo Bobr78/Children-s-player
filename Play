@@ -1,5 +1,5 @@
 
-import wx
+import wx #тест ввв
 import time
 import pygame
 import imageio
