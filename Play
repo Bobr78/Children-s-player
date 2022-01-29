@@ -65,6 +65,7 @@ class Form_player(wx.Frame):
 #======================================================================================================================================
 		# словарь переменных для отслеживания изменений параметров кнопок
 		self.EVENT_Form_player = {}
+
 		self.EVENT_Form_player.update({'B_Play_Pause':0})
 		self.EVENT_Form_player.update({'B_Stop': 1})
 		self.EVENT_Form_player.update({'B_Forward': 1})
@@ -196,8 +197,10 @@ class Form_player(wx.Frame):
 		# работаем с картой событий по нажатию кнопок
 		if arr[0] == self.EVENT_Form_player['Flag']:
 
+
 #			if int(arr[0]) == int(self.dic['Menu_key']): 
 #				as_there_Form_player = "Кошмар выбрали меню!!!!"
+
 
 			if int(arr[0]) == int(self.dic['B_Play_Pause_Key']):
 				if int(self.EVENT_Form_player['B_Play_Pause']):
@@ -278,6 +281,7 @@ class Form_player(wx.Frame):
 									# да я в курсе что есть ключ Form - пока это игнорируем, т.к. это будет 
 									# использоваться в прорисовке движков громкости и т.п. изменяющих после себя
 									# фон
+
 		# прорисовка рабочей области
 		if key == "Form":
 			self.DC_B.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, int(
