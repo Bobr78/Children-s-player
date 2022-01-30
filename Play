@@ -112,8 +112,19 @@ class Form_player(wx.Frame):
 
 #_____________________________________________________________________________методы класса_____________________________________________________________________________________
 
-	def Line_Light(self,percent):	#заполняем линию загрузки/воспроиведения
-		pass
+	# заполняем линию загрузки/воспроиведения
+	def Show_album (self, add):
+		folder = os.listdir(add)
+		files = os.listdir(add+folder[0])
+		for i in files:
+			if (os.path.splitext(i)[1]) == '.png':
+				addr=(str(add)+str(folder[0])+"\\"+str(os.path.splitext(i)[0])+str(os.path.splitext(i)[1]))
+				self.ButtonPaint("Album", addr)   
+				dc = wx.ClientDC(self)
+				dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
+				
+
+				
 
 
 #_______________________________________________метод вызова класса как функции
@@ -265,7 +276,7 @@ class Form_player(wx.Frame):
 		self.EVENT_Form_player.update({'Flag':arr[0]})	
 #____________________________________________перерисовка кнопок которые двигаются и оставлют после себя "шлейф"
 
-	def ButtonPaint(self, key):	#перенос кнопок и т.д. на холст в память 
+	def ButtonPaint(self, key, addr=None):	#перенос кнопок и т.д. на холст в память 
 								#пример вызова 		self.ButtonPaint("B_Pause")	
 
 
@@ -281,6 +292,17 @@ class Form_player(wx.Frame):
 									# да я в курсе что есть ключ Form - пока это игнорируем, т.к. это будет 
 									# использоваться в прорисовке движков громкости и т.п. изменяющих после себя
 									# фон
+
+		if key == "Album":
+			print(addr)
+			bmp_Album = wx.Image(addr, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+			DC_Album = wx.MemoryDC()  # выделяем холст в памяти
+			# связываем холст с размерами
+			DC_Album.SelectObject(wx.Bitmap(bmp_Album.GetWidth(), bmp_Album.GetHeight()))
+			DC_Album.DrawBitmap(bmp_Album, 0, 0, False)
+			self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), bmp_Album.GetWidth(), bmp_Album.GetHeight(),
+                            DC_Album, 0, 0)
+
 
 		# прорисовка рабочей области
 		if key == "Form":
@@ -344,12 +366,15 @@ class Book:
 		self.v = 0.5  # громкость 50%
 		self.list_mp3 = []  # создаем пустой список в формате имя файла/время воспроизведения
 		folder = []
-        # Получаем список файлов и параметров файла
 
+        # Получаем список файлов и параметров файла
         # получаем список подкаталогов и файлов каталога, возможно этот и следующий цикл можно объеденить
+
+
+
+
 		for i in os.walk(self.root_dir):
 			folder.append(i)
-
 		for address, dirs, files in folder:
 			for file in files:
 				if os.path.splitext(address+file)[1] == '.mp3':
@@ -366,7 +391,7 @@ class Book:
 
 		self.list_mp3.sort()  # сортируем список файлов чтобы озвучивать в правильном порядке
 		self.len = len(self.list_mp3)  # длинна списка
-
+		
 	def play(self, i=0, j=0):
 		self.i = i
 		self.j = j
@@ -429,14 +454,15 @@ class MyApp(wx.App):
 			#	*			B_Back_ON
 			#				B_Back_OFF
 			#	*			Menu_ON	
-								
 				print(as_there_Form_player)
 
 				if as_there_Form_player == 'Menu_ON': #вызывает меню выбора каталога книг
 					dialog = wx.DirDialog(None, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
 					if dialog.ShowModal() == wx.ID_OK:
 						rut = dialog.GetPath()+'\\'
-						B = Book(rut)
+						print(rut)
+						self.frame.Show_album(rut)
+#						B = Book(rut)
 				
 				if as_there_Form_player == 'B_Play' and rut != None and play_pause==0 : # воспроиводим файл
 					B.play()
@@ -482,9 +508,9 @@ class MyApp(wx.App):
 
 	def OnInit(self):
 
-		frame = Form_player()  # MyFrame(None, -1, "This is a test")
-		frame.Show(True)
-		self.SetTopWindow(frame)
+		self.frame = Form_player()  # MyFrame(None, -1, "This is a test")
+		self.frame.Show(True)
+		self.SetTopWindow(self.frame)
 
 		self.keepGoing = True
 		return True

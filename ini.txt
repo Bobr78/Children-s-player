@@ -6,6 +6,9 @@ B:3
 IMAGE_PATH_M:mask.png
 IMAGE_PATH_BG:bg.png
 
+X_image:190
+Y_image:42
+
 B_Play_Pause_Key:201
 B_Play_Pause_Width:43
 B_Play_Pause_Height:43
