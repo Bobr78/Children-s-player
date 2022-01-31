@@ -16,19 +16,16 @@ class Form_player(wx.Frame):
 
 	# глобальная переменная для передачи состояния в управляющий класс
 
-# долго думал и решил что в папке есть файл ini_Form.txt
+# долго думал и решил что в папке есть файл ini.txt
 # в которым сохраняем список ключей - просто передавать их при инициализации долшо и чревато ошибками. 
-# при выборе нового скрина - передаем при формировании класса название ini файла в котором прописываем параметры
-# ключи: R, G, B- цвет маски, IMAGE_PATH_M-файл карты событий.png, IMAGE_PATH_BG-фон, IMAGE_PATH_B-кнопки
-# B*_Width, B*_Height - параметры кнопки * (кнопки считаем с лева направо и с верху вниз)
-# Shift*_ - параметры сдвигаемой кнопки - ПОКА КНОПКИ СДВИГАЮТСЯ ТОЛЬКО ПО ГОРИЗОНТАЛИ!!!! от MIN до MAX
+# при выборе нового скина - передаем при формировании класса название ini файла в котором прописываем параметры
 
-
-# ПРАВИЛА ДЛЯ ФОРМИРОВАНИЯ КАРТЫ СОБЫТИЙ (event_map) - цвет в канале R !!!
+# ПРАВИЛА ДЛЯ ФОРМИРОВАНИЯ КАРТЫ СОБЫТИЙ (event_map) - учитывается только цвет в канале R !!!
 # 0 значение по умолчанию, НЕ ИСПОЛЬЗОВАТЬ В КАРТЕ СОБЫТИЙ!!
 # значения с 1 по 255 - любые, привязка событий в управляющем классе
 
 
+	
 #______________________Инициация переменных класса
 
 	def __init__(self, filename='ini.txt', **kwargs):
@@ -142,6 +139,7 @@ class Form_player(wx.Frame):
 	def OnPaint(self, evt):
 		dc = wx.PaintDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
+		
 
 
 #________________________________________________закрытие окна
@@ -350,6 +348,38 @@ class Form_player(wx.Frame):
                  int(self.dic['B_Back_Width']), int(self.dic['B_Back_Height']),
                  self.DC_B, int(self.dic['B_Back_XMem_OFF']), int(self.dic['B_Back_YMem_OFF']))
 
+	def onContext(self):
+		#if not hasattr(self, "popupID1"):
+		#	 self.popupID1 = 1
+		#	 self.itemTwoId = 2
+		#	 self.itemThreeId = 3
+		self.Bind(wx.EVT_MENU, self.Root_dir, id=1)
+		self.Bind(wx.EVT_MENU, self.onPopup, id=2)
+		#	 self.Bind(wx.EVT_MENU, self.onExit, id=self.itemThreeId)
+
+	        # build the menu
+		menu = wx.Menu()
+		itemOne = menu.Append(1, "Выбрать библиотеку")
+		itemTwo = menu.Append(2, "Найти книгу")
+		itemThree = menu.Append(3, "...")
+
+        # show the popup menu
+		self.PopupMenu(menu)
+		menu.Destroy()
+
+	def onPopup(self, idd):  # диалог выбора каталога
+			global as_there_Form_player
+			as_there_Form_player = "root"+"**"+ "еще одно меню"
+
+	def Root_dir(self, idd):  # диалог выбора каталога
+		dialog = wx.DirDialog(None, "Choose a directory:",
+		                      style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+		if dialog.ShowModal() == wx.ID_OK:
+			global as_there_Form_player
+			as_there_Form_player = "root"+"**" + dialog.GetPath()+"\\"
+
+	
+
 #############################################################################################################
 #############################################################################################################
 
@@ -439,7 +469,7 @@ class MyApp(wx.App):
 		old = wx.EventLoop.GetActive()
 		wx.EventLoop.SetActive(evtloop)
 		play_pause = 0
-		rut = None
+		root = None
 
 		while self.keepGoing:
 			global as_there_Form_player
@@ -454,27 +484,45 @@ class MyApp(wx.App):
 			#	*			B_Back_ON
 			#				B_Back_OFF
 			#	*			Menu_ON	
-				print(as_there_Form_player)
+				Key_Value=as_there_Form_player.split('**')
+				print("ключ: "+Key_Value[0])
+				print("полный ключ: "+as_there_Form_player)
+###############################################################################
 
-				if as_there_Form_player == 'Menu_ON': #вызывает меню выбора каталога книг
-					dialog = wx.DirDialog(None, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-					if dialog.ShowModal() == wx.ID_OK:
-						rut = dialog.GetPath()+'\\'
-						print(rut)
-						self.frame.Show_album(rut)
-#						B = Book(rut)
-				
-				if as_there_Form_player == 'B_Play' and rut != None and play_pause==0 : # воспроиводим файл
+
+				if Key_Value[0] == 'Menu_ON':  # вызывает меню выбора всякого разного
+					self.frame.onContext()
+					print("полный ключ: "+as_there_Form_player)
+					Key_Value = as_there_Form_player.split('**')
+					if Key_Value[0] == 'root':
+						print("параметр ключа: "+Key_Value[1])
+					
+#					выбор библиотеки и показ альбюома self.frame.Show_album(root)
+#					dialog = wx.DirDialog(None, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+#					if dialog.ShowModal() == wx.ID_OK:
+#						root = dialog.GetPath()+'\\'
+#						print(root)
+#						self.frame.Show_album(root)
+##						B = Book(root)
+
+
+
+
+
+
+################################################################################
+
+
+				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0: # воспроиводим файл
 					B.play()
-					play_pause=1
+					play_pause = 1
 					print("играю музыку")
 				
-				if (as_there_Form_player == 'B_Pause' or as_there_Form_player == 'B_Play') and rut != None and play_pause == 1:  # воспроиводим файл
+				if (Key_Value[0] == 'B_Pause' or Key_Value[0] == 'B_Play') and root != None and play_pause == 1:  # воспроиводим файл
 					B.pause()
 					print("пауза")
 
-				
-				if as_there_Form_player == 'B_Stop_ON' and rut != None:  # воспроиводим файл
+				if Key_Value[0] == 'B_Stop_ON' and root != None:  # воспроиводим файл
 					B.stop()
 					play_pause = 0
 				
@@ -489,13 +537,13 @@ class MyApp(wx.App):
 #						print (dialog.GetPath())
 #				print(q)
 #				if q == 1:
-#					rut1 = dialog.GetPath()+ '\\'
-#					print("rut1=" + rut1)
-#					rut = "D:\PY\\"
-#					print("rut=" + rut)
-#					if rut1==rut: print("УРа всме рОвно")  
-#					print(rut)
-#					B = Book(rut1)
+#					root1 = dialog.GetPath()+ '\\'
+#					print("root1=" + root1)
+#					root = "D:\PY\\"
+#					print("root=" + root)
+#					if root1==root: print("УРа все рОвно")  
+#					print(root)
+#					B = Book(root1)
 #					B.play()
 #				q=2
 #				print(as_there_Book)
@@ -515,6 +563,7 @@ class MyApp(wx.App):
 		self.keepGoing = True
 		return True
 
+	
 
 #####################################################################################################################
 #####################################################################################################################
