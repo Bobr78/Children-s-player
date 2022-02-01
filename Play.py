@@ -7,6 +7,8 @@ import os
 import codecs
 # https://mutagen.readthedocs.io/en/latest/user/gettingstarted.html
 from mutagen.mp3 import MP3
+from PIL import Image, ImageDraw, ImageFont
+from glob import glob
 import pygame
 pygame.init()		#не знаю зачем, но иначе не работает, а может и работает - надо попробывать
 pygame.mixer.init() 	#не знаю зачем, но иначе не работает, а может и работает - надо попробывать
@@ -31,7 +33,7 @@ class Form_player(wx.Frame):
 	def __init__(self, filename='ini.txt', **kwargs):
 		wx.Frame.__init__(self, None, -1, "Shaped Window", style = wx.FRAME_SHAPED | wx.SIMPLE_BORDER )
 		
-#=========================== работает ===============================================================================================
+
 #прикручина передача имени инициирующего файла и если нет то по умолчанию брать ini.txt
 		__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) 
 
@@ -107,21 +109,83 @@ class Form_player(wx.Frame):
 		self.Bind(wx.EVT_PAINT, self.OnPaint)
 		self.Bind(wx.EVT_WINDOW_CREATE, self.SetWindowShape)
 
+
+#_______________________инициализация флагов и т.п.
+
+		self.add = os.getcwdb()
+		self.catalog_number=0
 #_____________________________________________________________________________методы класса_____________________________________________________________________________________
 
-	# заполняем линию загрузки/воспроиведения
-	def Show_album (self, add):
-		folder = os.listdir(add)
-		files = os.listdir(add+folder[0])
+	def Show_album(self, add=None, catalog_number=0):
+		print("каталог где ищем книги="+str(self.add))
+		self.catalog_number = self.catalog_number+catalog_number
+		if add!=None: self.add=add
+		files = []
+		dirs = []
+		dir_root = []
+		dir_root=os.listdir(self.add)
+		for q in dir_root:
+		#	print(q)
+			if os.path.isdir(self.add+q):
+				dirs.append(self.add+q)
+#			if os.path.isfile(self.add+q): 
+#				print("найден файл "+str(q))
+#				files.append(self.add+q)
+		if self.catalog_number > (len(dirs)-1):self.catalog_number=0
+		if self.catalog_number < 0:	self.catalog_number = len(dirs)-1
+		root = dirs[self.catalog_number]+"\\"
+		dir_root = os.listdir(dirs[self.catalog_number]+"\\")
+		for q in dir_root:
+				if os.path.isfile(root+q):
+					files.append(root+q)
+
+
+		Flag_Album_png_found = 0
 		for i in files:
 			if (os.path.splitext(i)[1]) == '.png':
-				addr=(str(add)+str(folder[0])+"\\"+str(os.path.splitext(i)[0])+str(os.path.splitext(i)[1]))
-				self.ButtonPaint("Album", addr)   
-				dc = wx.ClientDC(self)
-				dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
-				
+				addr=i
+				bmp_Album = wx.Image(addr, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+				DC_Album = wx.MemoryDC()  # выделяем холст в памяти
+				# связываем холст с размерами
+		#		DC_Album.SelectObject(wx.Bitmap(bmp_Album.GetWidth(), bmp_Album.GetHeight()))
+				DC_Album.SelectObject(wx.Bitmap(int(self.dic['Width_image']), int(self.dic['Height_image'])))
+				DC_Album.DrawBitmap(bmp_Album, 0, 0, False)
+				self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), bmp_Album.GetWidth(), bmp_Album.GetHeight(),
+		                           DC_Album, 0, 0)
+				Flag_Album_png_found=1
+		if Flag_Album_png_found == 0:
+				Len_font = 25
+				image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=('#ffffff'))
+				font = ImageFont.truetype("arial.ttf", Len_font)
+				drawer = ImageDraw.Draw(image)
+				#text = str(os.path.dirname(addr))
+				text = q
+				sub_text_2 = []
+				sub_text = text.split(' ')
+				j = 0
+				for i in sub_text:
+					if len(i) > int(int(self.dic['Width_image'])/Len_font):
+						while j < int(len(i)/(int(self.dic['Width_image'])/Len_font)):
+							d = i[(j)*int((int(self.dic['Width_image'])/Len_font)): (j+1)*int((int(self.dic['Width_image'])/Len_font))]
+							sub_text_2.append(str(d+"-"))
+							j = j+1
+					else:
+						sub_text_2.append(i)
+				s = 0
+				for i in sub_text_2:
+					drawer.text((10, s), i, font=font, fill='black')
+					s = s+Len_font
 
-				
+				width, height = image.size
+				PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+				DC_Album = wx.MemoryDC()
+				DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
+				DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
+				self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
+                	            DC_Album, 0, 0)
+
+		dc = wx.ClientDC(self)
+		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 
 
 #_______________________________________________метод вызова класса как функции
@@ -228,20 +292,24 @@ class Form_player(wx.Frame):
 					self.EVENT_Form_player['B_Stop'] = 1
 
 			if int(arr[0]) == int(self.dic['B_Forward_Key']):
-				if int(self.EVENT_Form_player['B_Forward']):
-					self.EVENT_Form_player['B_Forward'] = 0
-					self.ButtonPaint("B_Forward_ON")
-				else:
-					self.ButtonPaint("B_Forward_OFF")
-					self.EVENT_Form_player['B_Forward'] = 1
+				# кнопка используются для переходу по альбомам - часть функционала выключаем 
+				self.Show_album(catalog_number=1)
+			#	if int(self.EVENT_Form_player['B_Forward']):
+			#		self.EVENT_Form_player['B_Forward'] = 0
+			#		self.ButtonPaint("B_Forward_ON")
+			#	else:
+			#		self.ButtonPaint("B_Forward_OFF")
+			#		self.EVENT_Form_player['B_Forward'] = 1
 
 			if int(arr[0]) == int(self.dic['B_Back_Key']):
-				if int(self.EVENT_Form_player['B_Back']):
-					self.EVENT_Form_player['B_Back'] = 0
-					self.ButtonPaint("B_Back_ON")
-				else:
-					self.ButtonPaint("B_Back_OFF")
-					self.EVENT_Form_player['B_Back'] = 1
+				# кнопка используются для переходу по альбомам - часть функционала выключаем
+				self.Show_album(catalog_number=-1)
+			#	if int(self.EVENT_Form_player['B_Back']):
+			#		self.EVENT_Form_player['B_Back'] = 0
+			#		self.ButtonPaint("B_Back_ON")
+			#	else:
+			#		self.ButtonPaint("B_Back_OFF")
+			#		self.EVENT_Form_player['B_Back'] = 1
 
 			if int(arr[0]) == int(self.dic['Menu_key']): #графическая составляющая иконки не меняется
 														# - передаем только ключ 
@@ -291,15 +359,8 @@ class Form_player(wx.Frame):
 									# использоваться в прорисовке движков громкости и т.п. изменяющих после себя
 									# фон
 
-		if key == "Album":
-			print(addr)
-			bmp_Album = wx.Image(addr, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
-			DC_Album = wx.MemoryDC()  # выделяем холст в памяти
-			# связываем холст с размерами
-			DC_Album.SelectObject(wx.Bitmap(bmp_Album.GetWidth(), bmp_Album.GetHeight()))
-			DC_Album.DrawBitmap(bmp_Album, 0, 0, False)
-			self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), bmp_Album.GetWidth(), bmp_Album.GetHeight(),
-                            DC_Album, 0, 0)
+
+			
 
 
 		# прорисовка рабочей области
@@ -492,11 +553,11 @@ class MyApp(wx.App):
 
 				if Key_Value[0] == 'Menu_ON':  # вызывает меню выбора всякого разного
 					self.frame.onContext()
-					print("полный ключ: "+as_there_Form_player)
 					Key_Value = as_there_Form_player.split('**')
-					if Key_Value[0] == 'root':
-						print("параметр ключа: "+Key_Value[1])
 					
+					#обработка подменю "выбор каталога с книгами"
+					if Key_Value[0] == 'root':
+						self.frame.Show_album(Key_Value[1])
 #					выбор библиотеки и показ альбюома self.frame.Show_album(root)
 #					dialog = wx.DirDialog(None, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
 #					if dialog.ShowModal() == wx.ID_OK:

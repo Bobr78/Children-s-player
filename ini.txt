@@ -6,8 +6,12 @@ B:3
 IMAGE_PATH_M:mask.png
 IMAGE_PATH_BG:bg.png
 
-X_image:190
-Y_image:42
+#_область_куда_помещают_картинку_альбома
+X_image:200
+Y_image:45
+Width_image:180
+Height_image:140
+rgb_image:ed923f
 
 B_Play_Pause_Key:201
 B_Play_Pause_Width:43
