@@ -11,7 +11,7 @@ X_image:200
 Y_image:45
 Width_image:180
 Height_image:140
-rgb_image:ed923f
+rgb_image:#ed923f
 
 B_Play_Pause_Key:201
 B_Play_Pause_Width:43
@@ -23,6 +23,9 @@ B_Play_Pause_YMem_OFF:490
 B_Play_Pause_XScreen:60
 B_Play_Pause_YScreen:122
 
+B_Play_Null_X:175
+B_Play_Null_Y:534
+
 B_Stop_Key:153
 B_Stop_Width:44
 B_Stop_Height:44
@@ -33,25 +36,25 @@ B_Stop_YMem_OFF:490
 B_Stop_XScreen:119
 B_Stop_YScreen:133
 
-B_Forward_Key:116
-B_Forward_Width:44
-B_Forward_Height:44
-B_Forward_XMem_ON:87
-B_Forward_YMem_ON:534
-B_Forward_XMem_OFF:87
-B_Forward_YMem_OFF:490
-B_Forward_XScreen:414
-B_Forward_YScreen:133
-
-B_Back_Key:80
+B_Back_Key:116
 B_Back_Width:44
 B_Back_Height:44
-B_Back_XMem_ON:131
+B_Back_XMem_ON:87
 B_Back_YMem_ON:534
-B_Back_XMem_OFF:131
+B_Back_XMem_OFF:87
 B_Back_YMem_OFF:490
-B_Back_XScreen:473
-B_Back_YScreen:122
+B_Back_XScreen:414
+B_Back_YScreen:133
+
+B_Forward_Key:80
+B_Forward_Width:44
+B_Forward_Height:44
+B_Forward_XMem_ON:131
+B_Forward_YMem_ON:534
+B_Forward_XMem_OFF:131
+B_Forward_YMem_OFF:490
+B_Forward_XScreen:473
+B_Forward_YScreen:122
 
 Shift1_Key:1
 Shift1_Xmem:175 

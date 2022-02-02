@@ -10,24 +10,20 @@ from mutagen.mp3 import MP3
 from PIL import Image, ImageDraw, ImageFont
 from glob import glob
 import pygame
-pygame.init()		#не знаю зачем, но иначе не работает, а может и работает - надо попробывать
-pygame.mixer.init() 	#не знаю зачем, но иначе не работает, а может и работает - надо попробывать
-
+pygame.init()		
+pygame.mixer.init() 	
+import ctypes  # An included library with Python install.
+#https: // qastack.ru/programming/2963263/how-can-i-create-a-simple-message-box-in-python
 
 class Form_player(wx.Frame):
 
-	# глобальная переменная для передачи состояния в управляющий класс
-
 # долго думал и решил что в папке есть файл ini.txt
-# в которым сохраняем список ключей - просто передавать их при инициализации долшо и чревато ошибками. 
+# в которым сохраняем список ключей - просто передавать их при инициализации долго и чревато ошибками. 
 # при выборе нового скина - передаем при формировании класса название ini файла в котором прописываем параметры
 
 # ПРАВИЛА ДЛЯ ФОРМИРОВАНИЯ КАРТЫ СОБЫТИЙ (event_map) - учитывается только цвет в канале R !!!
 # 0 значение по умолчанию, НЕ ИСПОЛЬЗОВАТЬ В КАРТЕ СОБЫТИЙ!!
 # значения с 1 по 255 - любые, привязка событий в управляющем классе
-
-
-	
 #______________________Инициация переменных класса
 
 	def __init__(self, filename='ini.txt', **kwargs):
@@ -64,14 +60,10 @@ class Form_player(wx.Frame):
 #======================================================================================================================================
 		# словарь переменных для отслеживания изменений параметров кнопок
 		self.EVENT_Form_player = {}
-
-		self.EVENT_Form_player.update({'B_Play_Pause':0})
-		self.EVENT_Form_player.update({'B_Stop': 1})
+		self.EVENT_Form_player.update({'B_Play_Pause':'Null'})
+		self.EVENT_Form_player.update({'B_Stop': 0})
 		self.EVENT_Form_player.update({'B_Forward': 1})
 		self.EVENT_Form_player.update({'B_Back': 1})
-	
-
-
 #______________________Делаем форму окна в виде картинки
 		
 		self.hasShape = False
@@ -80,7 +72,6 @@ class Form_player(wx.Frame):
 		self.bmp = wx.Image(os.path.join(
 			__location__, self.dic['IMAGE_PATH_BG']), wx.BITMAP_TYPE_ANY).ConvertToBitmap()	 # загружаем полностью картинку
 		self.transparentColour = wx.Colour(int(self.dic['R']), int(self.dic['G']), int(self.dic['B']), alpha=wx.ALPHA_OPAQUE)
-
 #______________________Загружаем карту событий
 		# запись картинки для карты событий по каналу R - 
 		# сделать инициализацию ивсех масок и карт из одного файла используя - wx.Image.__init__ (self, size, data)
@@ -89,7 +80,6 @@ class Form_player(wx.Frame):
 		self.event_map = imageio.imread(self.mask_event_path)
 		self.bmp_form = wx.Image(self.mask_event_path, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 		self.SetClientSize(self.bmp_form.GetWidth(), self.bmp_form.GetHeight())
-
 #______________________Инициируем Скин 
 		self.DC_B=wx.MemoryDC()										#выделяем холст в памяти
 		self.DC_B.SelectObject(wx.Bitmap(self.bmp.GetWidth(), self.bmp.GetHeight()))		#связываем холст с размерами
@@ -97,7 +87,6 @@ class Form_player(wx.Frame):
 		self.dc = wx.ClientDC(self)				# рисует картинку в окне. ВАЖНО! если перехватываем событие wx.EVT_PAINT то
 												# используем wx.PaintDC(self) в других случаях wx.ClientDC(self)
 												# http://python-lab.blogspot.com/2012/10/wxpython-in-action-12.html
-
 #______________________связываем события формы с функциями
 	
 		self.SetWindowShape()
@@ -108,16 +97,19 @@ class Form_player(wx.Frame):
 		self.Bind(wx.EVT_RIGHT_UP, self.OnExit)
 		self.Bind(wx.EVT_PAINT, self.OnPaint)
 		self.Bind(wx.EVT_WINDOW_CREATE, self.SetWindowShape)
-
-
 #_______________________инициализация флагов и т.п.
 
 		self.add = os.getcwdb()
 		self.catalog_number=0
+		self.hint=0
 #_____________________________________________________________________________методы класса_____________________________________________________________________________________
 
+
+#	def Mbox(self, title, text, style): #выводжит сообщения о ошибке
+#		return ctypes.windll.user32.MessageBoxW(0, text, title, style)
+
 	def Show_album(self, add=None, catalog_number=0):
-		print("каталог где ищем книги="+str(self.add))
+		Len_font = 25
 		self.catalog_number = self.catalog_number+catalog_number
 		if add!=None: self.add=add
 		files = []
@@ -125,12 +117,31 @@ class Form_player(wx.Frame):
 		dir_root = []
 		dir_root=os.listdir(self.add)
 		for q in dir_root:
-		#	print(q)
 			if os.path.isdir(self.add+q):
 				dirs.append(self.add+q)
-#			if os.path.isfile(self.add+q): 
-#				print("найден файл "+str(q))
-#				files.append(self.add+q)
+
+		if dirs==[]: 
+  #			self.Mbox('', 'В папке отсутствуют каталоги с книгами.', 0)
+			image = Image.new('RGB', (int(self.dic['Width_image']), int(
+				self.dic['Height_image'])), color=self.dic['rgb_image'])
+			sub_text_2 = ['В выбранной', 'папке', 'нет книг']
+			s=0
+			drawer = ImageDraw.Draw(image)
+			font = ImageFont.truetype("arial.ttf", Len_font)
+			for i in sub_text_2:
+				drawer.text((10, s), i, font=font, fill='black')
+				s = s+Len_font
+			
+			width, height = image.size
+			PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+			DC_Album = wx.MemoryDC()
+			DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
+			DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
+			self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
+                	            DC_Album, 0, 0)
+			dc = wx.ClientDC(self)
+			dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
+			return
 		if self.catalog_number > (len(dirs)-1):self.catalog_number=0
 		if self.catalog_number < 0:	self.catalog_number = len(dirs)-1
 		root = dirs[self.catalog_number]+"\\"
@@ -138,8 +149,11 @@ class Form_player(wx.Frame):
 		for q in dir_root:
 				if os.path.isfile(root+q):
 					files.append(root+q)
+		
+		global as_there_Form_player
+		as_there_Form_player = "root_album"+"**" + str(dirs[self.catalog_number]+"\\")
 
-
+# рисуем абложку альбома, если картинки нет то пишем название папки
 		Flag_Album_png_found = 0
 		for i in files:
 			if (os.path.splitext(i)[1]) == '.png':
@@ -154,8 +168,7 @@ class Form_player(wx.Frame):
 		                           DC_Album, 0, 0)
 				Flag_Album_png_found=1
 		if Flag_Album_png_found == 0:
-				Len_font = 25
-				image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=('#ffffff'))
+				image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
 				font = ImageFont.truetype("arial.ttf", Len_font)
 				drawer = ImageDraw.Draw(image)
 				#text = str(os.path.dirname(addr))
@@ -183,42 +196,32 @@ class Form_player(wx.Frame):
 				DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
 				self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
                 	            DC_Album, 0, 0)
-
+	
 		dc = wx.ClientDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
-
-
+		#передаем в управление адрес выбранного каталога
 #_______________________________________________метод вызова класса как функции
 
 #______________________________________________метод рисования окна												
 	def SetWindowShape(self, evt=None):
 		r = wx.Region(self.bmp_form, self.transparentColour)
 		self.hasShape = self.SetShape(r)
-		
 #_______________________________________________метод при двойном щелчке мышкой
 	def OnDoubleClick(self, evt):
 		pass
-
 #_________________________________________________перерисовка окна из холстя в памяти на экран
 	def OnPaint(self, evt):
 		dc = wx.PaintDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
-		
-
-
 #________________________________________________закрытие окна
 	def OnExit(self, evt):
 		self.Close()
-
-
 #____________________________________________метод при перемещении мыши
 	def OnMouseMove(self, evt):
 		if evt.Dragging() and evt.LeftIsDown():
 			pos = self.ClientToScreen(evt.GetPosition())
 			newPos = (pos.x - self.delta.x, pos.y - self.delta.y)
 			self.Move(newPos)
-
-
 #_______________________________________________изменение движка Shift -  !!! ПРИКРУТИЛ ПЕРЕМЕЩЕНИЕ К ПЕРЕМЕЩЕНИЮ МЫШИ !!!____________________________________________________________
 	
 #		absol=(wx.Point(self.ClientToScreen(evt.GetPosition()).x - self.GetPosition().x, self.ClientToScreen(evt.GetPosition()).y - self.GetPosition().y))
@@ -246,13 +249,19 @@ class Form_player(wx.Frame):
 #			# перемещение части экрана с движком на рабочий экран
 #			dc.Blit(self.dic[Shift1_XMem], self.dic[Shift1_YMem], self.dic[Shift1_Width], self.dic[Shift1_Height], self.DC_B, self.dic[Shift1_X], self.dic[Shift1_Y], logicalFunc=wx.COPY)
 #_________________________________________________________________________________________________________________________________________________________________________________________
-
 		
 #____________________________________________метод при отпускании левой клавиши мыши
 		
 	def OnLeftUp(self, evt):
 		if self.HasCapture(): 
 			self.ReleaseMouse()
+
+		if self.hint == 0: #стираем подсказки с плеера
+			self.ButtonPaint("Initiation")
+			dc = wx.ClientDC(self)
+			dc.Blit(0, 0, self.bmp_form.GetWidth(),self.bmp_form.GetHeight(), self.DC_B, 0, 0)
+			self.hint=1
+
 
 		pos = self.ClientToScreen(evt.GetPosition())
 		origin = self.GetPosition()
@@ -263,53 +272,56 @@ class Form_player(wx.Frame):
 		# для более понятной записи разбил выбор флага на два этапа
 		arr = self.event_map[self.EVENT_Form_player['Y2'], self.EVENT_Form_player['X2']]
 
-		# присваиваиваем глобальноcть переменной as_there_Form_player
-#		global as_there_Form_player
-		#_______________________________________________________________________________________ 
-
-		# работаем с картой событий по нажатию кнопок
-		if arr[0] == self.EVENT_Form_player['Flag']:
-
-
-#			if int(arr[0]) == int(self.dic['Menu_key']): 
-#				as_there_Form_player = "Кошмар выбрали меню!!!!"
-
+		# работаем с картой событий по нажатию кнопок (канал R)
+		if arr[0] == self.EVENT_Form_player['Flag']: #проверяем не изменилось ли место события сравнивая его 
+			# с флагом установленным в OnLeftDown. В принципе можно убрать проверку
 
 			if int(arr[0]) == int(self.dic['B_Play_Pause_Key']):
-				if int(self.EVENT_Form_player['B_Play_Pause']):
-						self.EVENT_Form_player['B_Play_Pause'] = 0
+				if self.EVENT_Form_player['B_Play_Pause'] != 'Null':
+					self.ButtonPaint("B_Stop_OFF")
+					self.EVENT_Form_player['B_Stop'] = 0
+					if self.EVENT_Form_player['B_Play_Pause']=='1':
+						self.EVENT_Form_player['B_Play_Pause'] = '0'
 						self.ButtonPaint("B_Pause")
-				else:
-					self.ButtonPaint("B_Play")
-					self.EVENT_Form_player['B_Play_Pause'] = 1
+				
+					else:
+						self.ButtonPaint("B_Play")
+						self.EVENT_Form_player['B_Play_Pause'] = '1'
 
-			if int(arr[0]) == int(self.dic['B_Stop_Key']):
+				if self.EVENT_Form_player['B_Play_Pause']== 'Null':
+					self.ButtonPaint("B_Stop_OFF")
+					self.EVENT_Form_player['B_Stop'] = 0
+					self.EVENT_Form_player['B_Play_Pause'] = "1"
+					self.ButtonPaint("B_Play")
+
+			if int(arr[0]) == int(self.dic['B_Stop_Key']) and self.EVENT_Form_player['B_Play_Pause'] != 'Null':
+				self.ButtonPaint("B_Play_Null")
+				self.EVENT_Form_player['B_Play_Pause'] = 'Null'
 				if int(self.EVENT_Form_player['B_Stop']):
 					self.EVENT_Form_player['B_Stop'] = 0
-					self.ButtonPaint("B_Stop_ON")
-				else:
 					self.ButtonPaint("B_Stop_OFF")
+				else:
+					self.ButtonPaint("B_Stop_ON")
 					self.EVENT_Form_player['B_Stop'] = 1
 
 			if int(arr[0]) == int(self.dic['B_Forward_Key']):
 				# кнопка используются для переходу по альбомам - часть функционала выключаем 
+				self.ButtonPaint("B_Play_Null")
+				self.EVENT_Form_player['B_Play_Pause'] = 'Null'
+				self.ButtonPaint("B_Stop_OFF")
+				self.EVENT_Form_player['B_Stop'] = 0
+				self.ButtonPaint("B_Forward_ON")
 				self.Show_album(catalog_number=1)
-			#	if int(self.EVENT_Form_player['B_Forward']):
-			#		self.EVENT_Form_player['B_Forward'] = 0
-			#		self.ButtonPaint("B_Forward_ON")
-			#	else:
-			#		self.ButtonPaint("B_Forward_OFF")
-			#		self.EVENT_Form_player['B_Forward'] = 1
 
 			if int(arr[0]) == int(self.dic['B_Back_Key']):
 				# кнопка используются для переходу по альбомам - часть функционала выключаем
+				self.ButtonPaint("B_Play_Null")
+				self.EVENT_Form_player['B_Play_Pause'] = 'Null'
+				self.ButtonPaint("B_Stop_OFF")
+				self.EVENT_Form_player['B_Stop'] = 0
+				self.ButtonPaint("B_Back_ON")
 				self.Show_album(catalog_number=-1)
-			#	if int(self.EVENT_Form_player['B_Back']):
-			#		self.EVENT_Form_player['B_Back'] = 0
-			#		self.ButtonPaint("B_Back_ON")
-			#	else:
-			#		self.ButtonPaint("B_Back_OFF")
-			#		self.EVENT_Form_player['B_Back'] = 1
+
 
 			if int(arr[0]) == int(self.dic['Menu_key']): #графическая составляющая иконки не меняется
 														# - передаем только ключ 
@@ -340,11 +352,23 @@ class Form_player(wx.Frame):
 		# для более понятной записи разбил выбор флага на два этапа
 		arr = self.event_map[self.EVENT_Form_player['Y1'], self.EVENT_Form_player['X1']]
 		self.EVENT_Form_player.update({'Flag':arr[0]})	
+
+#########добавляем обработк клавиш которые меняются при нажатии клавиши (не при отпускании!!!) #######
+		if int(arr[0]) == int(self.dic['B_Back_Key']):
+			print("нажата назад офф")
+			self.ButtonPaint("B_Back_OFF") #уменбшаем клавишу
+
+		if int(arr[0]) == int(self.dic['B_Forward_Key']):
+			print("нажата вперед офф")
+			self.ButtonPaint("B_Forward_OFF")  # уменбшаем клавишу
+
+		dc = wx.ClientDC(self)
+		dc.Blit(0, 0, self.bmp_form.GetWidth(),
+                    self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 #____________________________________________перерисовка кнопок которые двигаются и оставлют после себя "шлейф"
 
 	def ButtonPaint(self, key, addr=None):	#перенос кнопок и т.д. на холст в память 
 								#пример вызова 		self.ButtonPaint("B_Pause")	
-
 
 		#КУДА.Blit(в_какое_место_xdest, в_какое_место_ydest, width_картинки,
 		#height_картинки, откуда_source=self.DC_B1, смещение_в_self.DC_B1_xsrc,
@@ -352,21 +376,21 @@ class Form_player(wx.Frame):
 		#чтото_про_маску_xsrcMask=-1, ysrcMask=-1)
 
 		global as_there_Form_player
-		as_there_Form_player = key  # передача в "космос" что нажата клавиша key,
+		as_there_Form_player = key  # передача в управляющий класс что нажата клавиша key,
 									# далее идет визуализация а логика отработки телодвижений отдается в управление
 									# класс  MyApp,
 									# да я в курсе что есть ключ Form - пока это игнорируем, т.к. это будет 
 									# использоваться в прорисовке движков громкости и т.п. изменяющих после себя
 									# фон
 
-
-			
-
-
 		# прорисовка рабочей области
-		if key == "Form":
-			self.DC_B.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, int(
-			self.dic['X_mem']), int(self.dic['Y_mem']))
+		if key == "Initiation":
+			self.DC_B.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 
+                            self.bmp_form.GetHeight())
+			self.ButtonPaint("B_Play_Null")
+			self.ButtonPaint("B_Stop_OFF")
+			self.ButtonPaint("B_Forward_ON")
+			self.ButtonPaint("B_Back_ON")
 
 		#прорисовка кнопок
 		if key=="B_Pause":
@@ -378,6 +402,11 @@ class Form_player(wx.Frame):
 			self.DC_B.Blit(int(self.dic['B_Play_Pause_XScreen']), int(self.dic['B_Play_Pause_YScreen']),
                  int(self.dic['B_Play_Pause_Width']), int(self.dic['B_Play_Pause_Height']),
                  self.DC_B, int(self.dic['B_Play_Pause_XMem_OFF']), int(self.dic['B_Play_Pause_YMem_OFF']))
+		
+		if key == "B_Play_Null":
+			self.DC_B.Blit(int(self.dic['B_Play_Pause_XScreen']), int(self.dic['B_Play_Pause_YScreen']),
+                 int(self.dic['B_Play_Pause_Width']), int(self.dic['B_Play_Pause_Height']),
+                 self.DC_B, int(self.dic['B_Play_Null_X']), int(self.dic['B_Play_Null_Y']))
 
 		if key == "B_Stop_ON":
 			self.DC_B.Blit(int(self.dic['B_Stop_XScreen']), int(self.dic['B_Stop_YScreen']),
@@ -393,38 +422,33 @@ class Form_player(wx.Frame):
 			self.DC_B.Blit(int(self.dic['B_Forward_XScreen']), int(self.dic['B_Forward_YScreen']),
                  int(self.dic['B_Forward_Width']), int(self.dic['B_Forward_Height']),
                  self.DC_B, int(self.dic['B_Forward_XMem_ON']), int(self.dic['B_Forward_YMem_ON']))
+			print("печатаю кнопку вперед он")
 
 		if key == "B_Forward_OFF":
 			self.DC_B.Blit(int(self.dic['B_Forward_XScreen']), int(self.dic['B_Forward_YScreen']),
                  int(self.dic['B_Forward_Width']), int(self.dic['B_Forward_Height']),
                  self.DC_B, int(self.dic['B_Forward_XMem_OFF']), int(self.dic['B_Forward_YMem_OFF']))
-
+			print("печатаю кнопку вперед офф")
 		if key == "B_Back_ON":
 			self.DC_B.Blit(int(self.dic['B_Back_XScreen']), int(self.dic['B_Back_YScreen']),
                  int(self.dic['B_Back_Width']), int(self.dic['B_Back_Height']),
                  self.DC_B, int(self.dic['B_Back_XMem_ON']), int(self.dic['B_Back_YMem_ON']))
-
+			print("печатаю кнопку назад он")
 		if key == "B_Back_OFF":
 			self.DC_B.Blit(int(self.dic['B_Back_XScreen']), int(self.dic['B_Back_YScreen']),
                  int(self.dic['B_Back_Width']), int(self.dic['B_Back_Height']),
                  self.DC_B, int(self.dic['B_Back_XMem_OFF']), int(self.dic['B_Back_YMem_OFF']))
-
+			print("печатаю кнопку назад офф")
+	
 	def onContext(self):
-		#if not hasattr(self, "popupID1"):
-		#	 self.popupID1 = 1
-		#	 self.itemTwoId = 2
-		#	 self.itemThreeId = 3
 		self.Bind(wx.EVT_MENU, self.Root_dir, id=1)
 		self.Bind(wx.EVT_MENU, self.onPopup, id=2)
-		#	 self.Bind(wx.EVT_MENU, self.onExit, id=self.itemThreeId)
 
-	        # build the menu
 		menu = wx.Menu()
 		itemOne = menu.Append(1, "Выбрать библиотеку")
 		itemTwo = menu.Append(2, "Найти книгу")
 		itemThree = menu.Append(3, "...")
 
-        # show the popup menu
 		self.PopupMenu(menu)
 		menu.Destroy()
 
@@ -439,9 +463,6 @@ class Form_player(wx.Frame):
 			global as_there_Form_player
 			as_there_Form_player = "root"+"**" + dialog.GetPath()+"\\"
 
-	
-
-#############################################################################################################
 #############################################################################################################
 
 
@@ -461,9 +482,7 @@ class Book:
         # Получаем список файлов и параметров файла
         # получаем список подкаталогов и файлов каталога, возможно этот и следующий цикл можно объеденить
 
-
-
-
+		print(self.root_dir)
 		for i in os.walk(self.root_dir):
 			folder.append(i)
 		for address, dirs, files in folder:
@@ -477,12 +496,12 @@ class Book:
 		#еще ключевые слова: album, artist...
 		#mutagen.File(audio)- весь список свойств файла
 
- #               if os.path.splitext(address+file)[1]=='.png' or os.path.splitext(address+file)[1]=='.jpg': #выбираем картинки
- #                   self.image= pygame.image.load(address+file)
-
 		self.list_mp3.sort()  # сортируем список файлов чтобы озвучивать в правильном порядке
 		self.len = len(self.list_mp3)  # длинна списка
-		
+
+	def unload(self):
+		pygame.mixer.music.unload
+
 	def play(self, i=0, j=0):
 		self.i = i
 		self.j = j
@@ -529,7 +548,9 @@ class MyApp(wx.App):
 		evtloop = wx.GUIEventLoop()
 		old = wx.EventLoop.GetActive()
 		wx.EventLoop.SetActive(evtloop)
+		
 		play_pause = 0
+		load_unload=0
 		root = None
 
 		while self.keepGoing:
@@ -546,35 +567,32 @@ class MyApp(wx.App):
 			#				B_Back_OFF
 			#	*			Menu_ON	
 				Key_Value=as_there_Form_player.split('**')
-				print("ключ: "+Key_Value[0])
-				print("полный ключ: "+as_there_Form_player)
-###############################################################################
-
+				as_there_Form_player = None #обнуляем чтобы принимать значения от внешних функций, даже елси они 
+				#изменились при выполнении (типа вызов меню -> выбор каталога) 	
+				#print("ключ: "+Key_Value[0])
+				print(str(Key_Value))
 
 				if Key_Value[0] == 'Menu_ON':  # вызывает меню выбора всякого разного
-					self.frame.onContext()
-					Key_Value = as_there_Form_player.split('**')
-					
-					#обработка подменю "выбор каталога с книгами"
-					if Key_Value[0] == 'root':
+					self.frame.onContext() #вызов всплывающего меню
+				
+				#обработка подменю "выбор каталога с книгами"
+				if Key_Value[0] == 'root':
 						self.frame.Show_album(Key_Value[1])
-#					выбор библиотеки и показ альбюома self.frame.Show_album(root)
-#					dialog = wx.DirDialog(None, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-#					if dialog.ShowModal() == wx.ID_OK:
-#						root = dialog.GetPath()+'\\'
-#						print(root)
-#						self.frame.Show_album(root)
-##						B = Book(root)
 
-
-
-
-
-
-################################################################################
-
+				if Key_Value[0] == 'root_album':
+					print("ура, я передал корневолй каталог " + str(Key_Value[1]))
+					root = Key_Value[1]
+					if load_unload==0: #если каталог с музыкой загружен впервые  
+						B = Book(root)
+						load_unload=1
+					else: #каталог с музыкой уже загружен, нужно освободить ресурс
+						print("смена каталога")
+						B.stop()
+						B.unload()
+						B = Book(root)
 
 				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0: # воспроиводим файл
+					#root пока не определен - брать после выбора каталога!!!!
 					B.play()
 					play_pause = 1
 					print("играю музыку")
@@ -586,28 +604,8 @@ class MyApp(wx.App):
 				if Key_Value[0] == 'B_Stop_ON' and root != None:  # воспроиводим файл
 					B.stop()
 					play_pause = 0
-				
-				as_there_Form_player=None
-
-
-
-#				global q
-#				if q == 1:
-#					dialog = wx.DirDialog(None, "Choose a directory:",style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-#					if dialog.ShowModal() == wx.ID_OK:
-#						print (dialog.GetPath())
-#				print(q)
-#				if q == 1:
-#					root1 = dialog.GetPath()+ '\\'
-#					print("root1=" + root1)
-#					root = "D:\PY\\"
-#					print("root=" + root)
-#					if root1==root: print("УРа все рОвно")  
-#					print(root)
-#					B = Book(root1)
-#					B.play()
-#				q=2
-#				print(as_there_Book)
+		
+					global q
 
 			while evtloop.Pending():
 				evtloop.Dispatch()
@@ -623,15 +621,7 @@ class MyApp(wx.App):
 
 		self.keepGoing = True
 		return True
-
-	
-
 #####################################################################################################################
-#####################################################################################################################
-
-
-
-
 as_there_Form_player = None
 as_there_Book = None
 app = MyApp()
