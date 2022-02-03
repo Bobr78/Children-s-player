@@ -285,8 +285,8 @@ class Form_player(wx.Frame):
 						self.ButtonPaint("B_Pause")
 				
 					else:
-						self.ButtonPaint("B_Play")
 						self.EVENT_Form_player['B_Play_Pause'] = '1'
+						self.ButtonPaint("B_Play")
 
 				if self.EVENT_Form_player['B_Play_Pause']== 'Null':
 					self.ButtonPaint("B_Stop_OFF")
@@ -495,6 +495,10 @@ class Book:
 		#audio["title"]-дает название титла,
 		#еще ключевые слова: album, artist...
 		#mutagen.File(audio)- весь список свойств файла
+		if self.list_mp3 == []:
+			print("Ай яй яй, в каталоге нет mp3 книг,")  
+			print("возможно они подкаталоге или другой формат,")
+			print("надо сделать защиту!!!!")
 
 		self.list_mp3.sort()  # сортируем список файлов чтобы озвучивать в правильном порядке
 		self.len = len(self.list_mp3)  # длинна списка
@@ -550,6 +554,7 @@ class MyApp(wx.App):
 		wx.EventLoop.SetActive(evtloop)
 		
 		play_pause = 0
+		play_load=0
 		load_unload=0
 		root = None
 
@@ -570,41 +575,74 @@ class MyApp(wx.App):
 				as_there_Form_player = None #обнуляем чтобы принимать значения от внешних функций, даже елси они 
 				#изменились при выполнении (типа вызов меню -> выбор каталога) 	
 				#print("ключ: "+Key_Value[0])
+				print("*перемменные в начале опроса*")
 				print(str(Key_Value))
+				print("play_pause =" + str(play_pause))
+				print("play_load =" + str(play_load))
+				print("***************")
 
 				if Key_Value[0] == 'Menu_ON':  # вызывает меню выбора всякого разного
+					print("выбрано меню")
 					self.frame.onContext() #вызов всплывающего меню
 				
 				#обработка подменю "выбор каталога с книгами"
 				if Key_Value[0] == 'root':
-						self.frame.Show_album(Key_Value[1])
+					print("выбран каталог с книгами, передано в показ/выбор альбома")
+					self.frame.Show_album(Key_Value[1])
 
 				if Key_Value[0] == 'root_album':
-					print("ура, я передал корневолй каталог " + str(Key_Value[1]))
+					print("Получен адрес выбранного альбома " + str(Key_Value[1]))
 					root = Key_Value[1]
 					if load_unload==0: #если каталог с музыкой загружен впервые  
 						B = Book(root)
 						load_unload=1
+						print("загружаю файл в первый раз")
+						print("load_unload=" + str(load_unload))
 					else: #каталог с музыкой уже загружен, нужно освободить ресурс
-						print("смена каталога")
+						print("производжу смену каталога")
 						B.stop()
+						play_pause = 0
+						play_load = 0
+						print("выгружаю музыку")
 						B.unload()
+						print("загружаю нолвую музыку")
 						B = Book(root)
+					
+						
+						print("load_unload="+ str(load_unload))
 
-				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0: # воспроиводим файл
+				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0 and play_load==0:  
+					# первый раз загружаем файл и воспроиводим его
 					#root пока не определен - брать после выбора каталога!!!!
 					B.play()
 					play_pause = 1
-					print("играю музыку")
+					play_load = 1
+					print("играю музыку первй раз")
+					print("play_pause ="+ str( play_pause))
+					print("***************")
 				
-				if (Key_Value[0] == 'B_Pause' or Key_Value[0] == 'B_Play') and root != None and play_pause == 1:  # воспроиводим файл
+				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0 and play_load == 1:
+					# воспроиводим файл поставленный на паузу
 					B.pause()
+					play_pause = 1
 					print("пауза")
+					print("play_pause =" + str(play_pause))
+					print("***************")
+
+				if Key_Value[0] == 'B_Pause' and root != None and play_pause == 1 and play_load == 1:  # ставим файл на паузу
+					B.pause()
+					play_pause = 0
+					print("пауза")
+					print("play_pause =" + str(play_pause))
+					print("***************")
+					
 
 				if Key_Value[0] == 'B_Stop_ON' and root != None:  # воспроиводим файл
 					B.stop()
 					play_pause = 0
-		
+					play_load = 0  # сбрасываем чтобы можно было опять загрузить файл и воспроивести его с начала
+
+
 					global q
 
 			while evtloop.Pending():
