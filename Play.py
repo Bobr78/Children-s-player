@@ -14,6 +14,9 @@ pygame.init()
 pygame.mixer.init() 	
 import ctypes  # An included library with Python install.
 #https: // qastack.ru/programming/2963263/how-can-i-create-a-simple-message-box-in-python
+import subprocess # https://fixmypc.ru/post/konvertatsiia-mp4-failov-v-mp3-s-python-3/#ffmpeg
+import shutil
+
 
 class Form_player(wx.Frame):
 
@@ -441,27 +444,28 @@ class Form_player(wx.Frame):
 			print("печатаю кнопку назад офф")
 	
 	def onContext(self):
-		self.Bind(wx.EVT_MENU, self.Root_dir, id=1)
-		self.Bind(wx.EVT_MENU, self.onPopup, id=2)
-
 		menu = wx.Menu()
 		itemOne = menu.Append(1, "Выбрать библиотеку")
-		itemTwo = menu.Append(2, "Найти книгу")
+		itemTwo = menu.Append(2, "Конвертировать в mp3")
 		itemThree = menu.Append(3, "...")
 
+		self.Bind(wx.EVT_MENU, self.Root_dir, itemOne)
+		self.Bind(wx.EVT_MENU, self.Root_dir, itemTwo) #Возможно будет работать если убрать id? или поставить. Вроде должен передавать id -?		
+		
 		self.PopupMenu(menu)
 		menu.Destroy()
-
-	def onPopup(self, idd):  # диалог выбора каталога
-			global as_there_Form_player
-			as_there_Form_player = "root"+"**"+ "еще одно меню"
 
 	def Root_dir(self, idd):  # диалог выбора каталога
 		dialog = wx.DirDialog(None, "Choose a directory:",
 		                      style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
 		if dialog.ShowModal() == wx.ID_OK:
-			global as_there_Form_player
-			as_there_Form_player = "root"+"**" + dialog.GetPath()+"\\"
+			if idd=1: #выбран/передан каталог с библиотекой
+				global as_there_Form_player
+				as_there_Form_player = "root1"+"**" + dialog.GetPath()+"\\"
+
+			if idd=2: #выбран/передан каталог для конвертации в mp3
+				global as_there_Form_player
+				as_there_Form_player = "root2"+"**" + dialog.GetPath()+"\\"
 
 #############################################################################################################
 
@@ -547,6 +551,60 @@ class Book:
 
 #САМЫЙ ГЛАВНЫЙ КЛАСС - УПРАВЛЕНИЕ
 class MyApp(wx.App):
+	
+	def Converter_mp3(add): #берем каталог и если там есть файлы: mp4, wav то конвертируем в mp3, возможно потом сделать возможность выбора автоматической конвертиции
+		dir_root = os.listdir(add)
+		for q in dir_root: #создаем список файлов в выбранном каталоге
+				if os.path.isfile(root+q):
+					files.append(root+q)
+		
+			for i in files: #конвертируем файлы в mp3 из mp4
+				if (os.path.splitext(i)[1]) == '.mp4' #возможно можно совместить с проверкой на wav
+					if not os.path.exists(add+"mp4"): #проверяем существует ли каталог mp4, если нет то генерируем и перемещаем туда файлы
+						os.mkdir(add+"mp4") #создаем каталог mp4
+	# join(map(str, os.path.splitext(i))) преобразует список в строку, map применяет str ко всему списску (join работаета только со  str)
+					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+					completed=subprocess.call(command)
+
+	#if completed.returncode ==0: # если ошибок нет то переносим исходный файл в подкаталог.
+	# !!!! вопроc, а вот возвращение кода когда будет? после выполнения конвертации? а if будет ждать ? 
+	# будем использовать while , а нет делам подругому-
+	# https://stackoverflow.com/questions/35151758/can-i-run-ffmpeg-from-my-python-code-and-return-a-signal-when-its-done-compress
+	#
+	#while completed.returncode==None: #ждем полчения ответа
+	#	time.sleep(5)
+	#	print("Пока не преобразовали, ждем")
+
+					if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
+						shutil.move(os.path.splitext(i), add+"mp4\\")
+					else:
+						print("Получили ошибку -> "+completed)
+			i=None #возможено сброс и ненужен
+			# внимание вопрос - а итератор files после перебора обнуляется?
+			for i in files: #конвертируем файлы в mp3 из wav
+				if (os.path.splitext(i)[1]) == '.wav'
+					if not os.path.exists(add+"wav"): 
+						os.mkdir(add+"wav") 
+					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+					completed=subprocess.call(command)
+
+					if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
+						shutil.move(os.path.splitext(i), add+"wav\\")
+					else:
+						print("Получили ошибку -> "+completed)
+			i=None #возможено сброс и ненужен
+			for i in files: #конвертируем файлы в mp3 из avi
+				if (os.path.splitext(i)[1]) == '.avi'
+					if not os.path.exists(add+"avi"): 
+						os.mkdir(add+"wav") 
+					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -vn -ar 44100 -ac 2 -ab 192K -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+					completed=subprocess.call(command)
+
+					if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
+						shutil.move(os.path.splitext(i), add+"avi\\")
+					else:
+						print("Получили ошибку -> "+completed)
+	
 	def MainLoop(self):
 
 		evtloop = wx.GUIEventLoop()
@@ -586,9 +644,13 @@ class MyApp(wx.App):
 					self.frame.onContext() #вызов всплывающего меню
 				
 				#обработка подменю "выбор каталога с книгами"
-				if Key_Value[0] == 'root':
+				if Key_Value[0] == 'root1':
 					print("выбран каталог с книгами, передано в показ/выбор альбома")
 					self.frame.Show_album(Key_Value[1])
+				
+				if Key_Value[0] == 'root2':
+					print("выбран каталог с книгами для конвертации в pm3")
+					Converter_mp3(Key_Value[1])
 
 				if Key_Value[0] == 'root_album':
 					print("Получен адрес выбранного альбома " + str(Key_Value[1]))
