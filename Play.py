@@ -29,11 +29,9 @@ class Form_player(wx.Frame):
 # значения с 1 по 255 - любые, привязка событий в управляющем классе
 #______________________Инициация переменных класса
 
-	def __init__(self, filename='ini.txt', **kwargs):
+	def __init__(self, filename, **kwargs):
 		wx.Frame.__init__(self, None, -1, "Shaped Window", style = wx.FRAME_SHAPED | wx.SIMPLE_BORDER )
-		
 
-#прикручина передача имени инициирующего файла и если нет то по умолчанию брать ini.txt
 		__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) 
 
 # конструкция os.path.join(__location__, filename) и переменная __location__ 
@@ -42,7 +40,8 @@ class Form_player(wx.Frame):
 # bytes и т.д. перекодирует файл чтобы небыло всяких маркеров типа BOM символа
 
 		self.test=1
-
+	
+#получаем данные скина из файлауказанного в инициирующем файле	
 		bytes = min(32, os.path.getsize(os.path.join(__location__, filename)))
 		raw = open(os.path.join(__location__, filename), 'rb').read(bytes)
 
@@ -52,13 +51,13 @@ class Form_player(wx.Frame):
 			result = chardet.detect(raw)
 			encoding = result['encoding']
 
-		with open(os.path.join(__location__, filename), 'r', encoding=encoding) as file:								#Читаем файл
+		with open(os.path.join(__location__, filename), 'r', encoding=encoding) as file:#Читаем файл
 			lines = file.read().split()	#не читаем комментарии (начинаются с символа #)
-			self.dic = {}								# Создаем пустой словарь
+			self.dic = {}	# Создаем пустой словарь
 
-		for line in lines:							# Проходимся по каждой строчке
+		for line in lines:# Проходимся по каждой строчке
 				if line[0]!='#':
-					key,value = line.split(':')					# Разделяем каждую строку по двоеточию
+					key,value = line.split(':') # Разделяем каждую строку по двоеточию
 					self.dic.update({key:value})
 #======================================================================================================================================
 		# словарь переменных для отслеживания изменений параметров кнопок
@@ -122,7 +121,7 @@ class Form_player(wx.Frame):
 		for q in dir_root:
 			if os.path.isdir(self.add+q):
 				dirs.append(self.add+q)
-
+		dirs.sort() #сортируем список каталогов
 		if dirs==[]: 
   #			self.Mbox('', 'В папке отсутствуют каталоги с книгами.', 0)
 			image = Image.new('RGB', (int(self.dic['Width_image']), int(
@@ -614,8 +613,10 @@ class MyApp(wx.App):
 		play_pause = 0
 		play_load=0
 		load_unload=0
-		root = None
-
+		root = str(self.ini_dic.get('Rack', "None")) #назначаем путь до стеллажа с книгами, если его нет то None
+		if root != None:
+			Show_album(self, add=root, catalog_number=int(self.ini_dic.['Book'])) #!!!!!!!!!!!!!! надо перевести название каталога в номер по списку !!!!
+		
 		while self.keepGoing:
 			global as_there_Form_player
 			if as_there_Form_player!=None: # пришло сообщение от Form_player (на чтото нажали)
@@ -630,7 +631,7 @@ class MyApp(wx.App):
 			#				B_Back_OFF
 			#	*			Menu_ON	
 				Key_Value=as_there_Form_player.split('**')
-				as_there_Form_player = None #обнуляем чтобы принимать значения от внешних функций, даже елси они 
+				as_there_Form_player = None #обнуляем чтобы принимать значения от внешних функций, даже если они 
 				#изменились при выполнении (типа вызов меню -> выбор каталога) 	
 				#print("ключ: "+Key_Value[0])
 				print("*перемменные в начале опроса*")
@@ -714,8 +715,50 @@ class MyApp(wx.App):
 		wx.EventLoop.SetActive(old)
 
 	def OnInit(self):
+		
+		#чтение первичной инициализации формы ini.txt - файл находиться в каталоге откуда запускается файл py
+		#в качестве разделителя используем ** - использую этот разделитель чтобы не было проблем в написании путей
+		#возможно можно обойти? 
+		filename='ini.txt'
+		bytes = min(32, os.path.getsize(os.path.join(__location__, filename)))
+		raw = open(os.path.join(__location__, filename), 'rb').read(bytes)
 
-		self.frame = Form_player()  # MyFrame(None, -1, "This is a test")
+		if raw.startswith(codecs.BOM_UTF8):
+			encoding = 'utf-8-sig'
+		else:
+			result = chardet.detect(raw)
+			encoding = result['encoding']
+
+		with open(os.path.join(__location__, filename), 'r', encoding=encoding) as file: #Читаем файл
+			lines = file.read().split()	#не читаем комментарии (начинаются с символа #)
+			self.ini_dic = {} # Создаем пустой словарь
+
+		for line in lines: # Проходимся по каждой строчке
+				if line[0]!='#':
+					key,value = line.split('*') # Разделяем каждую строку по *
+					self.ini_dic.update({key:value})
+		#Проверяем состав полей и инициируем если не определены (ну малоли, вдруг кто попортил)
+		#Выбор полки книжной не проверяем - при инициализации формы отправляем на выбор полки
+		#получаем название книги
+		book_1=str(self.ini_dic.get('Book', "None")) #поумолчанию альбом выбирается = 0
+		if book_1!=None:
+			dirs = []
+			dir_root = []
+			Rack=str(self.ini_dic.get('Rack', "None")) #назначаем путь до стеллажа с книгами, если его нет то None, малоли поломали путь
+			if Rack!=None:
+				dir_root=os.listdir(Rack)
+				for q in dir_root:
+					if os.path.isdir(Rack+q):
+						dirs.append(Rack+q)
+				dirs.sort() #сортируем список каталогов
+				try:
+					s=dirs.index(book_1)
+				except ValueError:
+					self.ini_dic['Book']=0 #если каталог с книгой на полке не найден то =0	
+			else: self.ini_dic['Book']=0 #если полка не определена то = 0	
+		else: self.ini_dic['Book']=0 #если книга не определена то = 0
+			
+		self.frame = Form_player(filename=str(self.ini_dic.get('Skin', "star_54.txt")))  # По умолчанию используем скин "Звезда 54"
 		self.frame.Show(True)
 		self.SetTopWindow(self.frame)
 
