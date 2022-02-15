@@ -19,10 +19,8 @@ import shutil
 
 
 class Form_player(wx.Frame):
-
-# долго думал и решил что в папке есть файл ini.txt
-# в которым сохраняем список ключей - просто передавать их при инициализации долго и чревато ошибками. 
-# при выборе нового скина - передаем при формировании класса название ini файла в котором прописываем параметры
+	
+# НАДО ПЕРЕСМОТРЕТЬ ВСЕ ФУНКЦИИ ЧТОБЫ НЕБЫЛО СКВОЗНЫХ ИЗМЕНЯЕМЫХ ПАРАМЕТРОВ, ПУСТЬ И ВНУТРИ КЛАССА - ЗАКАПСУЛИРОВАТЬ ИХ, А МОЖЕТ И НЕНАДО. КОРОЧЕ НУЖО ПОДУМАТЬ ПРО ЭТО
 
 # ПРАВИЛА ДЛЯ ФОРМИРОВАНИЯ КАРТЫ СОБЫТИЙ (event_map) - учитывается только цвет в канале R !!!
 # 0 значение по умолчанию, НЕ ИСПОЛЬЗОВАТЬ В КАРТЕ СОБЫТИЙ!!
@@ -110,6 +108,35 @@ class Form_player(wx.Frame):
 #	def Mbox(self, title, text, style): #выводжит сообщения о ошибке
 #		return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
+	def Print_on_sreen (self, text="Тест", CSS={'size_font':25, font:"arial.ttf", color_font:'black'})
+	
+		image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
+		font = ImageFont.truetype(str(CSS['font']), int(CSS['size_font']))
+		drawer = ImageDraw.Draw(image)
+		sub_text = text.split(' ')
+		sub_text_2 = [] #список для деления слов на подстроки
+		j = 0
+		for i in sub_text:
+			if len(i) > int(int(self.dic['Width_image'])/int(CSS['size_font'])):
+				while j < int(len(i)/(int(self.dic['Width_image'])/int(CSS['size_font']))):
+					d = i[(j)*int((int(self.dic['Width_image'])/int(CSS['size_font']))): (j+1)*int((int(self.dic['Width_image'])/int(CSS['size_font'])))]
+					sub_text_2.append(str(d+"-"))
+					j = j+1
+			else:
+				sub_text_2.append(i)
+		s = 0
+		for i in sub_text_2:
+			drawer.text((10, s), i, font=font, fill='black') #значение 10 - это смещение от начала окна - возможно стоит изменить на задаваемый параметр
+			s = s+int(CSS['size_font'])
+		width, height = image.size
+		PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+		DC_Album = wx.MemoryDC()
+		DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
+		DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
+		self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(), DC_Album, 0, 0)
+		dc = wx.ClientDC(self)
+		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
+	
 	def Show_album(self, add=None, catalog_number=0):
 		Len_font = 25
 		self.catalog_number = self.catalog_number+catalog_number
@@ -123,26 +150,27 @@ class Form_player(wx.Frame):
 				dirs.append(self.add+q)
 		dirs.sort() #сортируем список каталогов
 		if dirs==[]: 
-  #			self.Mbox('', 'В папке отсутствуют каталоги с книгами.', 0)
-			image = Image.new('RGB', (int(self.dic['Width_image']), int(
-				self.dic['Height_image'])), color=self.dic['rgb_image'])
-			sub_text_2 = ['В выбранной', 'папке', 'нет книг']
-			s=0
-			drawer = ImageDraw.Draw(image)
-			font = ImageFont.truetype("arial.ttf", Len_font)
-			for i in sub_text_2:
-				drawer.text((10, s), i, font=font, fill='black')
-				s = s+Len_font
-			
-			width, height = image.size
-			PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
-			DC_Album = wx.MemoryDC()
-			DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
-			DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
-			self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
-                	            DC_Album, 0, 0)
-			dc = wx.ClientDC(self)
-			dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
+			Print_on_sreen(text="В выбранной папке нет книг")
+  #			#self.Mbox('', 'В папке отсутствуют каталоги с книгами.', 0)
+			#image = Image.new('RGB', (int(self.dic['Width_image']), int(
+			#	self.dic['Height_image'])), color=self.dic['rgb_image'])
+			#sub_text_2 = ['В выбранной', 'папке', 'нет книг']
+			#s=0
+			#drawer = ImageDraw.Draw(image)
+			#font = ImageFont.truetype("arial.ttf", Len_font)
+			#for i in sub_text_2:
+			#	drawer.text((10, s), i, font=font, fill='black')
+			#	s = s+Len_font
+			#
+			#width, height = image.size
+			#PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+			#DC_Album = wx.MemoryDC()
+			#DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
+			#DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
+			#self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
+                	#            DC_Album, 0, 0)
+			#dc = wx.ClientDC(self)
+			#dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 			return
 		if self.catalog_number > (len(dirs)-1):self.catalog_number=0
 		if self.catalog_number < 0:	self.catalog_number = len(dirs)-1
@@ -168,39 +196,42 @@ class Form_player(wx.Frame):
 				DC_Album.DrawBitmap(bmp_Album, 0, 0, False)
 				self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), bmp_Album.GetWidth(), bmp_Album.GetHeight(),
 		                           DC_Album, 0, 0)
+				dc = wx.ClientDC(self)
+				dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 				Flag_Album_png_found=1
 		if Flag_Album_png_found == 0:
-				image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
-				font = ImageFont.truetype("arial.ttf", Len_font)
-				drawer = ImageDraw.Draw(image)
-				#text = str(os.path.dirname(addr))
-				text = q
-				sub_text_2 = []
-				sub_text = text.split(' ')
-				j = 0
-				for i in sub_text:
-					if len(i) > int(int(self.dic['Width_image'])/Len_font):
-						while j < int(len(i)/(int(self.dic['Width_image'])/Len_font)):
-							d = i[(j)*int((int(self.dic['Width_image'])/Len_font)): (j+1)*int((int(self.dic['Width_image'])/Len_font))]
-							sub_text_2.append(str(d+"-"))
-							j = j+1
-					else:
-						sub_text_2.append(i)
-				s = 0
-				for i in sub_text_2:
-					drawer.text((10, s), i, font=font, fill='black')
-					s = s+Len_font
+			Print_on_sreen(text=str(q))
+			
+			#	image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
+			#	font = ImageFont.truetype("arial.ttf", Len_font)
+			#	drawer = ImageDraw.Draw(image)
+			#	#text = str(os.path.dirname(addr))
+			#	text = q #блин.... вот это кадавр. в q должен находиться последний элемент итератора -
+			#		#каталог, а работеат он потому что в каталоге только один подкаталог. если будет больше то кирдык !!!! ПЕРЕДЕЛАТЬ !!!!
+			#	sub_text_2 = []
+			#	sub_text = text.split(' ')
+			#	j = 0
+			#	for i in sub_text:
+			#		if len(i) > int(int(self.dic['Width_image'])/Len_font):
+			#			while j < int(len(i)/(int(self.dic['Width_image'])/Len_font)):
+			#				d = i[(j)*int((int(self.dic['Width_image'])/Len_font)): (j+1)*int((int(self.dic['Width_image'])/Len_font))]
+			#				sub_text_2.append(str(d+"-"))
+			#				j = j+1
+			#		else:
+			#			sub_text_2.append(i)
+			#	s = 0
+			#	for i in sub_text_2:
+			#		drawer.text((10, s), i, font=font, fill='black')
+			#		s = s+Len_font
+			#
+			#	width, height = image.size
+			#	PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+			#	DC_Album = wx.MemoryDC()
+			#	DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
+			#	DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
+			#	self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
+                	 #           DC_Album, 0, 0)
 
-				width, height = image.size
-				PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
-				DC_Album = wx.MemoryDC()
-				DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
-				DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
-				self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
-                	            DC_Album, 0, 0)
-	
-		dc = wx.ClientDC(self)
-		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 		#передаем в управление адрес выбранного каталога
 #_______________________________________________метод вызова класса как функции
 
