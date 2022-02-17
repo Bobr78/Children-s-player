@@ -94,7 +94,7 @@ class Form_player(wx.Frame):
 		self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
 		self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
 		self.Bind(wx.EVT_MOTION, self.OnMouseMove)
-		self.Bind(wx.EVT_RIGHT_UP, self.OnExit)
+	#	self.Bind(wx.EVT_RIGHT_UP, self.OnExit)
 		self.Bind(wx.EVT_PAINT, self.OnPaint)
 		self.Bind(wx.EVT_WINDOW_CREATE, self.SetWindowShape)
 #_______________________инициализация флагов и т.п.
@@ -105,9 +105,25 @@ class Form_player(wx.Frame):
 #_____________________________________________________________________________методы класса_____________________________________________________________________________________
 
 
-#	def Mbox(self, title, text, style): #выводжит сообщения о ошибке
-#		return ctypes.windll.user32.MessageBoxW(0, text, title, style)
-
+	def Mbox(self, title, text, style): #выводжит сообщения о ошибке, должно закрыться через 10с
+		return ctypes.windll.user32.MessageBoxTimeoutA(0, text, title, style, 0, 10000)
+	
+	
+#	FUNCTION long MessageBoxTimeoutA (ulong hwnd, ref string text, ref string title, ulong style, long wlanguageid, long milisec) LIBRARY "user32.dll"
+#long ll_rtn_t
+#ulong ll_handle_t
+#ulong ll_style_t
+#string ls_text_t
+#string ls_title_t
+#
+#ll_handle_t = handle(parent)
+#ls_text_t = "текст"
+#ls_title_t = "название"
+#ll_style_t = 3 //yes no cancel
+#
+#//закроется через 60 секунд
+#ll_rtn_t = MessageBoxTimeoutA(ll_handle_t,ls_text_t,ls_title_t,ll_style_t,0,60000)
+	
 	def Print_on_sreen (self, text="Тест", CSS={'size_font':25, font:"arial.ttf", color_font:'black'})
 	
 		image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
@@ -138,60 +154,36 @@ class Form_player(wx.Frame):
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 	
 	def Show_album(self, add=None, catalog_number=0):
-		Len_font = 25
 		self.catalog_number = self.catalog_number+catalog_number
 		if add!=None: self.add=add
 		files = []
 		dirs = []
 		dir_root = []
 		dir_root=os.listdir(self.add)
-		for q in dir_root:
+		for q in dir_root: 
 			if os.path.isdir(self.add+q):
-				dirs.append(self.add+q)
+				dirs.append(self.add+q) #дает список каталогов
 		dirs.sort() #сортируем список каталогов
 		if dirs==[]: 
 			Print_on_sreen(text="В выбранной папке нет книг")
-  #			#self.Mbox('', 'В папке отсутствуют каталоги с книгами.', 0)
-			#image = Image.new('RGB', (int(self.dic['Width_image']), int(
-			#	self.dic['Height_image'])), color=self.dic['rgb_image'])
-			#sub_text_2 = ['В выбранной', 'папке', 'нет книг']
-			#s=0
-			#drawer = ImageDraw.Draw(image)
-			#font = ImageFont.truetype("arial.ttf", Len_font)
-			#for i in sub_text_2:
-			#	drawer.text((10, s), i, font=font, fill='black')
-			#	s = s+Len_font
-			#
-			#width, height = image.size
-			#PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
-			#DC_Album = wx.MemoryDC()
-			#DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
-			#DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
-			#self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
-                	#            DC_Album, 0, 0)
-			#dc = wx.ClientDC(self)
-			#dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 			return
 		if self.catalog_number > (len(dirs)-1):self.catalog_number=0
 		if self.catalog_number < 0:	self.catalog_number = len(dirs)-1
-		root = dirs[self.catalog_number]+"\\"
-		dir_root = os.listdir(dirs[self.catalog_number]+"\\")
+		root = dirs[self.catalog_number]+"\\" #получаем путь к выбранному каталогу
+		dir_root = os.listdir(root)
 		for q in dir_root:
 				if os.path.isfile(root+q):
-					files.append(root+q)
+					files.append(root+q) #получаем список файлов с полным путем
 		
 		global as_there_Form_player
-		as_there_Form_player = "root_album"+"**" + str(dirs[self.catalog_number]+"\\")
+		as_there_Form_player = "root_album"+"**" + str(root) #передаем выбранный каталог на обработку в классе управления
 
 # рисуем абложку альбома, если картинки нет то пишем название папки
 		Flag_Album_png_found = 0
-		for i in files:
+		for png_addr in files:
 			if (os.path.splitext(i)[1]) == '.png':
-				addr=i
-				bmp_Album = wx.Image(addr, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+				bmp_Album = wx.Image(png_addr, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 				DC_Album = wx.MemoryDC()  # выделяем холст в памяти
-				# связываем холст с размерами
-		#		DC_Album.SelectObject(wx.Bitmap(bmp_Album.GetWidth(), bmp_Album.GetHeight()))
 				DC_Album.SelectObject(wx.Bitmap(int(self.dic['Width_image']), int(self.dic['Height_image'])))
 				DC_Album.DrawBitmap(bmp_Album, 0, 0, False)
 				self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), bmp_Album.GetWidth(), bmp_Album.GetHeight(),
@@ -200,40 +192,7 @@ class Form_player(wx.Frame):
 				dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 				Flag_Album_png_found=1
 		if Flag_Album_png_found == 0:
-			Print_on_sreen(text=str(q))
-			
-			#	image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
-			#	font = ImageFont.truetype("arial.ttf", Len_font)
-			#	drawer = ImageDraw.Draw(image)
-			#	#text = str(os.path.dirname(addr))
-			#	text = q #блин.... вот это кадавр. в q должен находиться последний элемент итератора -
-			#		#каталог, а работеат он потому что в каталоге только один подкаталог. если будет больше то кирдык !!!! ПЕРЕДЕЛАТЬ !!!!
-			#	sub_text_2 = []
-			#	sub_text = text.split(' ')
-			#	j = 0
-			#	for i in sub_text:
-			#		if len(i) > int(int(self.dic['Width_image'])/Len_font):
-			#			while j < int(len(i)/(int(self.dic['Width_image'])/Len_font)):
-			#				d = i[(j)*int((int(self.dic['Width_image'])/Len_font)): (j+1)*int((int(self.dic['Width_image'])/Len_font))]
-			#				sub_text_2.append(str(d+"-"))
-			#				j = j+1
-			#		else:
-			#			sub_text_2.append(i)
-			#	s = 0
-			#	for i in sub_text_2:
-			#		drawer.text((10, s), i, font=font, fill='black')
-			#		s = s+Len_font
-			#
-			#	width, height = image.size
-			#	PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
-			#	DC_Album = wx.MemoryDC()
-			#	DC_Album.SelectObject(wx.Bitmap(PIL2wx.GetWidth(), PIL2wx.GetHeight()))
-			#	DC_Album.DrawBitmap(PIL2wx, 0, 0, False)
-			#	self.DC_B.Blit(int(self.dic['X_image']), int(self.dic['Y_image']), PIL2wx.GetWidth(), PIL2wx.GetHeight(),
-                	 #           DC_Album, 0, 0)
-
-		#передаем в управление адрес выбранного каталога
-#_______________________________________________метод вызова класса как функции
+			Print_on_sreen(text=str(os.path.basename(os.path.dirname(root))))
 
 #______________________________________________метод рисования окна												
 	def SetWindowShape(self, evt=None):
@@ -247,7 +206,8 @@ class Form_player(wx.Frame):
 		dc = wx.PaintDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 #________________________________________________закрытие окна
-	def OnExit(self, evt):
+	#def OnExit(self, evt):
+	def OnExit(self):
 		self.Close()
 #____________________________________________метод при перемещении мыши
 	def OnMouseMove(self, evt):
@@ -363,7 +323,7 @@ class Form_player(wx.Frame):
 
 			dc = wx.ClientDC(self) 
 			# рисует картинку в окне. ВАЖНО! если перехватываем событие wx.EVT_PAINT то 															
-			# # используем wx.PaintDC(self) в других случаях wx.ClientDC(self)
+			# используем wx.PaintDC(self) в других случаях wx.ClientDC(self)
 			# http://python-lab.blogspot.com/2012/10/wxpython-in-action-12.html
 			dc.Blit(0, 0, self.bmp_form.GetWidth(),
 			        self.bmp_form.GetHeight(), self.DC_B, 0, 0)
@@ -477,14 +437,26 @@ class Form_player(wx.Frame):
 		menu = wx.Menu()
 		itemOne = menu.Append(1, "Выбрать библиотеку")
 		itemTwo = menu.Append(2, "Конвертировать в mp3")
-		itemThree = menu.Append(3, "...")
-
+		itemThree = menu.Append(3, "Выбрать оформление"")
+		itemFour = menu.Append(4, "Выход")
+		global as_there_Form_player
 		self.Bind(wx.EVT_MENU, self.Root_dir, itemOne)
-		self.Bind(wx.EVT_MENU, self.Root_dir, itemTwo) #Возможно будет работать если убрать id? или поставить. Вроде должен передавать id -?		
+		self.Bind(wx.EVT_MENU, self.Root_dir, itemTwo) #Возможно будет работать если убрать id? или поставить. Вроде должен передавать id -?	
+		self.Bind(wx.EVT_MENU, self.File_skin, Three)
+		self.Bind(wx.EVT_MENU, lambda: as_there_Form_player = "Skin", itemFour)
 		
 		self.PopupMenu(menu)
 		menu.Destroy()
-
+	
+	def File_skin(self, idd):  # диалог выбора каталога
+		wildcard = "Файл описания (*.ini)|*.ini|"
+		dialog = wx.FileDialog(None, "Choose a file", os.getcwd(), "", wildcard, wx.OPEN)
+		if dialog.ShowModal() == wx.ID_OK:
+			global as_there_Form_player
+			as_there_Form_player = "File_skin"+"**" + dialog.GetPath()+"\\"
+        	dialog.Destroy()
+					
+					
 	def Root_dir(self, idd):  # диалог выбора каталога
 		dialog = wx.DirDialog(None, "Choose a directory:",
 		                      style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
@@ -496,7 +468,12 @@ class Form_player(wx.Frame):
 			if idd=2: #выбран/передан каталог для конвертации в mp3
 				global as_there_Form_player
 				as_there_Form_player = "root2"+"**" + dialog.GetPath()+"\\"
-
+				
+			if idd=4: #Выход
+				global as_there_Form_player
+				as_there_Form_player = "Exit"
+		dialog.Destroy()
+					
 #############################################################################################################
 
 
@@ -579,7 +556,7 @@ class Book:
 
 #конец описания класса
 
-#САМЫЙ ГЛАВНЫЙ КЛАСС - УПРАВЛЕНИЕ
+#САМЫЙ ГЛАВНЫЙ КЛАСС -> УПРАВЛЕНИЕ
 class MyApp(wx.App):
 	
 	def Converter_mp3(add): #берем каталог и если там есть файлы: mp4, wav то конвертируем в mp3, возможно потом сделать возможность выбора автоматической конвертиции
@@ -592,6 +569,7 @@ class MyApp(wx.App):
 				if (os.path.splitext(i)[1]) == '.mp4' #возможно можно совместить с проверкой на wav
 					if not os.path.exists(add+"mp4"): #проверяем существует ли каталог mp4, если нет то генерируем и перемещаем туда файлы
 						os.mkdir(add+"mp4") #создаем каталог mp4
+	
 	# join(map(str, os.path.splitext(i))) преобразует список в строку, map применяет str ко всему списску (join работаета только со  str)
 					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
 					completed=subprocess.call(command)
@@ -626,7 +604,7 @@ class MyApp(wx.App):
 			for i in files: #конвертируем файлы в mp3 из avi
 				if (os.path.splitext(i)[1]) == '.avi'
 					if not os.path.exists(add+"avi"): 
-						os.mkdir(add+"wav") 
+						os.mkdir(add+"avi") 
 					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -vn -ar 44100 -ac 2 -ab 192K -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
 					completed=subprocess.call(command)
 
@@ -641,10 +619,15 @@ class MyApp(wx.App):
 		old = wx.EventLoop.GetActive()
 		wx.EventLoop.SetActive(evtloop)
 		
+		#инициализация переменных/флагов			
 		play_pause = 0
 		play_load=0
 		load_unload=0
 		root = str(self.ini_dic.get('Rack', "None")) #назначаем путь до стеллажа с книгами, если его нет то None
+		File_skin=None
+		Rack=None
+		Book=None
+					
 		if root != None:
 			Show_album(self, add=root, catalog_number=int(self.ini_dic.['Book'])) #!!!!!!!!!!!!!! надо перевести название каталога в номер по списку !!!!
 		
@@ -671,6 +654,25 @@ class MyApp(wx.App):
 				print("play_load =" + str(play_load))
 				print("***************")
 
+				if Key_Value[0] == 'Exit': #выгружаем/закрываем программу
+				#Записываем состояние плеера
+					filename='ini.txt'	
+					f = open(filename, 'w')
+					f.write("#Инициализация_всего_плеера" + '\n')
+					f.write("#В_качестве_разделителя_используем_*" + '\n')
+					f.write("Skin*"+str(Skin)+'\n')
+					f.write("Rack*"+str(Rack)+'\n')
+					f.write("Book*"+str(Book))
+					f.close()
+					
+				#Выгружаем/закрываем программу
+					if load_unload==0: #если каталог с музыкой загружен впервые  
+						self.frame.OnExit() #музыка не загружалась, закрываем только графику
+					else: #каталог с музыкой уже загружен, нужно освободить ресурс
+						B.stop()
+						B.unload()
+						self.frame.OnExit() #музыка загружалась, выгружаем/закрываем
+				
 				if Key_Value[0] == 'Menu_ON':  # вызывает меню выбора всякого разного
 					print("выбрано меню")
 					self.frame.onContext() #вызов всплывающего меню
@@ -678,17 +680,21 @@ class MyApp(wx.App):
 				#обработка подменю "выбор каталога с книгами"
 				if Key_Value[0] == 'root1':
 					print("выбран каталог с книгами, передано в показ/выбор альбома")
-					self.frame.Show_album(Key_Value[1])
+					Rack=Key_Value[1]
+					self.frame.Show_album(Rack)
 				
 				if Key_Value[0] == 'root2':
 					print("выбран каталог с книгами для конвертации в pm3")
 					Converter_mp3(Key_Value[1])
+				
+				if Key_Value[0] == 'File_skin':
+					File_skin=Key_Value[1]
 
 				if Key_Value[0] == 'root_album':
 					print("Получен адрес выбранного альбома " + str(Key_Value[1]))
-					root = Key_Value[1]
+					Book = Key_Value[1]
 					if load_unload==0: #если каталог с музыкой загружен впервые  
-						B = Book(root)
+						B = Book(Book)
 						load_unload=1
 						print("загружаю файл в первый раз")
 						print("load_unload=" + str(load_unload))
@@ -700,10 +706,7 @@ class MyApp(wx.App):
 						print("выгружаю музыку")
 						B.unload()
 						print("загружаю нолвую музыку")
-						B = Book(root)
-					
-						
-						print("load_unload="+ str(load_unload))
+						B = Book(Book)
 
 				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0 and play_load==0:  
 					# первый раз загружаем файл и воспроиводим его
@@ -763,7 +766,7 @@ class MyApp(wx.App):
 		with open(os.path.join(__location__, filename), 'r', encoding=encoding) as file: #Читаем файл
 			lines = file.read().split()	#не читаем комментарии (начинаются с символа #)
 			self.ini_dic = {} # Создаем пустой словарь
-
+	#	file.close() #возможно после with open... файл автоматически закрывается
 		for line in lines: # Проходимся по каждой строчке
 				if line[0]!='#':
 					key,value = line.split('*') # Разделяем каждую строку по *
