@@ -124,10 +124,10 @@ class Form_player(wx.Frame):
 #//закроется через 60 секунд
 #ll_rtn_t = MessageBoxTimeoutA(ll_handle_t,ls_text_t,ls_title_t,ll_style_t,0,60000)
 	
-	def Print_on_sreen (self, text="Тест", CSS={'size_font':25, font:"arial.ttf", color_font:'black'})
+	def Print_on_sreen (self, text="Тест", CSS={'size_font':25, 'font':"arial.ttf", 'color_font':'black'}):
 	
 		image = Image.new('RGB', (int(self.dic['Width_image']), int(self.dic['Height_image'])), color=self.dic['rgb_image'])
-		font = ImageFont.truetype(str(CSS['font']), int(CSS['size_font']))
+		font_main = ImageFont.truetype(str(CSS['font']), int(CSS['size_font']))
 		drawer = ImageDraw.Draw(image)
 		sub_text = text.split(' ')
 		sub_text_2 = [] #список для деления слов на подстроки
@@ -142,7 +142,8 @@ class Form_player(wx.Frame):
 				sub_text_2.append(i)
 		s = 0
 		for i in sub_text_2:
-			drawer.text((10, s), i, font=font, fill='black') #значение 10 - это смещение от начала окна - возможно стоит изменить на задаваемый параметр
+			# значение 10 - это смещение от начала окна - возможно стоит изменить на задаваемый параметр
+			drawer.text((10, s), i, font=font_main, fill='black')
 			s = s+int(CSS['size_font'])
 		width, height = image.size
 		PIL2wx = wx.Bitmap.FromBuffer(width, height, image.tobytes())
@@ -153,19 +154,25 @@ class Form_player(wx.Frame):
 		dc = wx.ClientDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 	
-	def Show_album(self, add=None, catalog_number=0):
+	def Show_album(self, addd="D:\книги", catalog_number=0):
+		
+		print("че это "+ str(type(addd)))
+		add = "D:\книги"
 		self.catalog_number = self.catalog_number+catalog_number
-		if add!=None: self.add=add
+		if add != None:
+			print("раз "+str(add))
+			self.add = add
+			print("два "+str(self.add))
 		files = []
 		dirs = []
 		dir_root = []
-		dir_root=os.listdir(self.add)
+		dir_root=os.listdir(str(self.add))
 		for q in dir_root: 
-			if os.path.isdir(self.add+q):
-				dirs.append(self.add+q) #дает список каталогов
+			if os.path.isdir(str(self.add+q)):
+				dirs.append(str(self.add+q)) #дает список каталогов
 		dirs.sort() #сортируем список каталогов
 		if dirs==[]: 
-			Print_on_sreen(text="В выбранной папке нет книг")
+			self.Print_on_sreen(text="В выбранной папке нет книг")
 			return
 		if self.catalog_number > (len(dirs)-1):self.catalog_number=0
 		if self.catalog_number < 0:	self.catalog_number = len(dirs)-1
@@ -437,41 +444,40 @@ class Form_player(wx.Frame):
 		menu = wx.Menu()
 		itemOne = menu.Append(1, "Выбрать библиотеку")
 		itemTwo = menu.Append(2, "Конвертировать в mp3")
-		itemThree = menu.Append(3, "Выбрать оформление"")
+		itemThree = menu.Append(3, "Выбрать оформление")
 		itemFour = menu.Append(4, "Выход")
-		global as_there_Form_player
 		self.Bind(wx.EVT_MENU, self.Root_dir, itemOne)
 		self.Bind(wx.EVT_MENU, self.Root_dir, itemTwo) #Возможно будет работать если убрать id? или поставить. Вроде должен передавать id -?	
-		self.Bind(wx.EVT_MENU, self.File_skin, Three)
-		self.Bind(wx.EVT_MENU, lambda: as_there_Form_player = "Skin", itemFour)
+		self.Bind(wx.EVT_MENU, self.File_skin, itemThree)
+		self.Bind(wx.EVT_MENU, self.Exit_All, itemFour)
 		
 		self.PopupMenu(menu)
 		menu.Destroy()
 	
+	def Exit_All(self, idd):
+		global as_there_Form_player
+		as_there_Form_player = "Exit"
+
 	def File_skin(self, idd):  # диалог выбора каталога
 		wildcard = "Файл описания (*.ini)|*.ini|"
 		dialog = wx.FileDialog(None, "Choose a file", os.getcwd(), "", wildcard, wx.OPEN)
 		if dialog.ShowModal() == wx.ID_OK:
 			global as_there_Form_player
 			as_there_Form_player = "File_skin"+"**" + dialog.GetPath()+"\\"
-        	dialog.Destroy()
+			dialog.Destroy()
 					
 					
 	def Root_dir(self, idd):  # диалог выбора каталога
+		global as_there_Form_player
 		dialog = wx.DirDialog(None, "Choose a directory:",
 		                      style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
 		if dialog.ShowModal() == wx.ID_OK:
-			if idd=1: #выбран/передан каталог с библиотекой
-				global as_there_Form_player
+			if idd==1: #выбран/передан каталог с библиотекой
 				as_there_Form_player = "root1"+"**" + dialog.GetPath()+"\\"
 
-			if idd=2: #выбран/передан каталог для конвертации в mp3
-				global as_there_Form_player
+			if idd==2: #выбран/передан каталог для конвертации в mp3
 				as_there_Form_player = "root2"+"**" + dialog.GetPath()+"\\"
-				
-			if idd=4: #Выход
-				global as_there_Form_player
-				as_there_Form_player = "Exit"
+
 		dialog.Destroy()
 					
 #############################################################################################################
@@ -565,14 +571,14 @@ class MyApp(wx.App):
 				if os.path.isfile(root+q):
 					files.append(root+q)
 		
-			for i in files: #конвертируем файлы в mp3 из mp4
-				if (os.path.splitext(i)[1]) == '.mp4' #возможно можно совместить с проверкой на wav
-					if not os.path.exists(add+"mp4"): #проверяем существует ли каталог mp4, если нет то генерируем и перемещаем туда файлы
-						os.mkdir(add+"mp4") #создаем каталог mp4
+		for i in files: #конвертируем файлы в mp3 из mp4
+			if (os.path.splitext(i)[1]) == '.mp4': #возможно можно совместить с проверкой на wav
+				if not os.path.exists(add+"mp4"): #проверяем существует ли каталог mp4, если нет то генерируем и перемещаем туда файлы
+					os.mkdir(add+"mp4") #создаем каталог mp4
 	
 	# join(map(str, os.path.splitext(i))) преобразует список в строку, map применяет str ко всему списску (join работаета только со  str)
-					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
-					completed=subprocess.call(command)
+				command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+				completed=subprocess.call(command)
 
 	#if completed.returncode ==0: # если ошибок нет то переносим исходный файл в подкаталог.
 	# !!!! вопроc, а вот возвращение кода когда будет? после выполнения конвертации? а if будет ждать ? 
@@ -583,35 +589,35 @@ class MyApp(wx.App):
 	#	time.sleep(5)
 	#	print("Пока не преобразовали, ждем")
 
-					if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
-						shutil.move(os.path.splitext(i), add+"mp4\\")
-					else:
-						print("Получили ошибку -> "+completed)
+				if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
+					shutil.move(os.path.splitext(i), add+"mp4\\")
+				else:
+					print("Получили ошибку -> "+completed)
 			i=None #возможено сброс и ненужен
 			# внимание вопрос - а итератор files после перебора обнуляется?
-			for i in files: #конвертируем файлы в mp3 из wav
-				if (os.path.splitext(i)[1]) == '.wav'
-					if not os.path.exists(add+"wav"): 
-						os.mkdir(add+"wav") 
-					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
-					completed=subprocess.call(command)
+		for i in files: #конвертируем файлы в mp3 из wav
+			if (os.path.splitext(i)[1]) == '.wav':
+				if not os.path.exists(add+"wav"): 
+					os.mkdir(add+"wav") 
+				command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+				completed=subprocess.call(command)
 
-					if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
-						shutil.move(os.path.splitext(i), add+"wav\\")
-					else:
-						print("Получили ошибку -> "+completed)
+				if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
+					shutil.move(os.path.splitext(i), add+"wav\\")
+				else:
+					print("Получили ошибку -> "+completed)
 			i=None #возможено сброс и ненужен
-			for i in files: #конвертируем файлы в mp3 из avi
-				if (os.path.splitext(i)[1]) == '.avi'
-					if not os.path.exists(add+"avi"): 
-						os.mkdir(add+"avi") 
-					command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -vn -ar 44100 -ac 2 -ab 192K -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
-					completed=subprocess.call(command)
+		for i in files: #конвертируем файлы в mp3 из avi
+			if (os.path.splitext(i)[1]) == '.avi':
+				if not os.path.exists(add+"avi"): 
+					os.mkdir(add+"avi") 
+				command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -vn -ar 44100 -ac 2 -ab 192K -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+				completed=subprocess.call(command)
 
-					if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
-						shutil.move(os.path.splitext(i), add+"avi\\")
-					else:
-						print("Получили ошибку -> "+completed)
+				if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
+					shutil.move(os.path.splitext(i), add+"avi\\")
+				else:
+					print("Получили ошибку -> "+completed)
 	
 	def MainLoop(self):
 
@@ -629,8 +635,11 @@ class MyApp(wx.App):
 		Book=None
 					
 		if root != None:
-			Show_album(self, add=root, catalog_number=int(self.ini_dic.['Book'])) #!!!!!!!!!!!!!! надо перевести название каталога в номер по списку !!!!
-		
+			# !!!!!!!!!!!!!! надо перевести название каталога в номер по списку !!!!
+			print("руут равен "+str(root))
+			#self.frame.Show_album(self, catalog_number=int(self.ini_dic['Book']))
+			self.frame.Show_album(self)
+			print("кирдык")
 		while self.keepGoing:
 			global as_there_Form_player
 			if as_there_Form_player!=None: # пришло сообщение от Form_player (на чтото нажали)
@@ -754,6 +763,7 @@ class MyApp(wx.App):
 		#в качестве разделителя используем ** - использую этот разделитель чтобы не было проблем в написании путей
 		#возможно можно обойти? 
 		filename='ini.txt'
+		__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 		bytes = min(32, os.path.getsize(os.path.join(__location__, filename)))
 		raw = open(os.path.join(__location__, filename), 'rb').read(bytes)
 
@@ -764,12 +774,13 @@ class MyApp(wx.App):
 			encoding = result['encoding']
 
 		with open(os.path.join(__location__, filename), 'r', encoding=encoding) as file: #Читаем файл
-			lines = file.read().split()	#не читаем комментарии (начинаются с символа #)
+			lines = file.read().split('\n')	#не читаем комментарии (начинаются с символа #)
 			self.ini_dic = {} # Создаем пустой словарь
 	#	file.close() #возможно после with open... файл автоматически закрывается
 		for line in lines: # Проходимся по каждой строчке
 				if line[0]!='#':
 					key,value = line.split('*') # Разделяем каждую строку по *
+					print(str(key)+"  "+str(value))
 					self.ini_dic.update({key:value})
 		#Проверяем состав полей и инициируем если не определены (ну малоли, вдруг кто попортил)
 		#Выбор полки книжной не проверяем - при инициализации формы отправляем на выбор полки
