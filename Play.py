@@ -154,22 +154,18 @@ class Form_player(wx.Frame):
 		dc = wx.ClientDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 	
-	def Show_album(self, addd="D:\книги", catalog_number=0):
-		
-		print("че это "+ str(type(addd)))
-		add = "D:\книги"
+	def Show_album(self, add=None, catalog_number=0):
+		print("че это "+ str(type(add)))
 		self.catalog_number = self.catalog_number+catalog_number
 		if add != None:
-			print("раз "+str(add))
 			self.add = add
-			print("два "+str(self.add))
 		files = []
 		dirs = []
 		dir_root = []
-		dir_root=os.listdir(str(self.add))
+		dir_root=os.listdir(self.add)
 		for q in dir_root: 
-			if os.path.isdir(str(self.add+q)):
-				dirs.append(str(self.add+q)) #дает список каталогов
+			if os.path.isdir(self.add+q):
+				dirs.append(self.add+q) #дает список каталогов
 		dirs.sort() #сортируем список каталогов
 		if dirs==[]: 
 			self.Print_on_sreen(text="В выбранной папке нет книг")
@@ -637,9 +633,7 @@ class MyApp(wx.App):
 		if root != None:
 			# !!!!!!!!!!!!!! надо перевести название каталога в номер по списку !!!!
 			print("руут равен "+str(root))
-			#self.frame.Show_album(self, catalog_number=int(self.ini_dic['Book']))
-			self.frame.Show_album(self)
-			print("кирдык")
+			self.frame.Show_album(add=root, catalog_number=int(self.ini_dic['Book']))
 		while self.keepGoing:
 			global as_there_Form_player
 			if as_there_Form_player!=None: # пришло сообщение от Form_player (на чтото нажали)
