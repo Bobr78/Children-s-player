@@ -109,6 +109,7 @@ class Form_player(wx.Frame):
 #		return ctypes.windll.user32.MessageBoxW(0, text, title, style)
 
 	def Show_album(self, add=None, catalog_number=0):
+		print("ТИп "+str(type(add)))
 		Len_font = 25
 		self.catalog_number = self.catalog_number+catalog_number
 		if add!=None: self.add=add
