@@ -1,0 +1,1 @@
+pyinstaller --add-data "bg.png;." --add-data "mask.png;." --add-data "ini.txt;." Play.py
