@@ -102,6 +102,7 @@ class Form_player(wx.Frame):
 		self.add = os.getcwdb()
 		self.catalog_number=0
 		self.hint=0
+		self.add=None
 #_____________________________________________________________________________методы класса_____________________________________________________________________________________
 
 
@@ -154,11 +155,14 @@ class Form_player(wx.Frame):
 		dc = wx.ClientDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 	
-	def Show_album(self, add=None, catalog_number=0):
+	def Show_album(self, add='0', catalog_number=0):
 		print("че это "+ str(type(add)))
 		self.catalog_number = self.catalog_number+catalog_number
-		if add != None:
-			self.add = add
+		if self.add==None:
+			self.add = add #инициируем первый раз каталог с книгами
+			if self.add=='0':
+					self.Print_on_sreen(text="Не выбран каталог с книгами")
+					return
 		files = []
 		dirs = []
 		dir_root = []
