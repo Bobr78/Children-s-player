@@ -7,7 +7,7 @@ import os
 import codecs
 # https://mutagen.readthedocs.io/en/latest/user/gettingstarted.html
 from mutagen.mp3 import MP3
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont #pip install Pillow
 from glob import glob
 import pygame
 pygame.init()		
@@ -15,7 +15,7 @@ pygame.mixer.init()
 import ctypes  # An included library with Python install.
 #https: // qastack.ru/programming/2963263/how-can-i-create-a-simple-message-box-in-python
 import subprocess # https://fixmypc.ru/post/konvertatsiia-mp4-failov-v-mp3-s-python-3/#ffmpeg
-import shutil
+import shutil #pip install pytest-shutil
 
 
 class Form_player(wx.Frame):
@@ -99,7 +99,7 @@ class Form_player(wx.Frame):
 		self.Bind(wx.EVT_WINDOW_CREATE, self.SetWindowShape)
 #_______________________инициализация флагов и т.п.
 
-		self.add = os.getcwdb()
+	#	self.add = os.getcwdb()
 		self.catalog_number=0
 		self.hint=0
 		self.add=None
@@ -155,12 +155,13 @@ class Form_player(wx.Frame):
 		dc = wx.ClientDC(self)
 		dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 	
-	def Show_album(self, add='0', catalog_number=0):
+	def Show_album(self, add=None, catalog_number=0):
+		print("корневой каталог "+str(add)+"номер книги "+str(catalog_number))
 		print("че это "+ str(type(add)))
 		self.catalog_number = self.catalog_number+catalog_number
 		if self.add==None:
 			self.add = add #инициируем первый раз каталог с книгами
-			if self.add=='0':
+			if self.add=='None': # Потомучто в add он передается ка строка а не как зарезервированное слово. ну или я непонял
 					self.Print_on_sreen(text="Не выбран каталог с книгами")
 					return
 		files = []
@@ -187,8 +188,9 @@ class Form_player(wx.Frame):
 
 # рисуем абложку альбома, если картинки нет то пишем название папки
 		Flag_Album_png_found = 0
+#		i=int(self.catalog_number) #тестовая переменная
 		for png_addr in files:
-			if (os.path.splitext(i)[1]) == '.png':
+			if (str(os.path.splitext(png_addr)[1])) == '.png':
 				bmp_Album = wx.Image(png_addr, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
 				DC_Album = wx.MemoryDC()  # выделяем холст в памяти
 				DC_Album.SelectObject(wx.Bitmap(int(self.dic['Width_image']), int(self.dic['Height_image'])))
@@ -199,7 +201,7 @@ class Form_player(wx.Frame):
 				dc.Blit(0, 0, self.bmp_form.GetWidth(), self.bmp_form.GetHeight(), self.DC_B, 0, 0)
 				Flag_Album_png_found=1
 		if Flag_Album_png_found == 0:
-			Print_on_sreen(text=str(os.path.basename(os.path.dirname(root))))
+			self.Print_on_sreen(text=str(os.path.basename(os.path.dirname(root))))
 
 #______________________________________________метод рисования окна												
 	def SetWindowShape(self, evt=None):
@@ -567,17 +569,20 @@ class MyApp(wx.App):
 	
 	def Converter_mp3(add): #берем каталог и если там есть файлы: mp4, wav то конвертируем в mp3, возможно потом сделать возможность выбора автоматической конвертиции
 		dir_root = os.listdir(add)
+		files = []
 		for q in dir_root: #создаем список файлов в выбранном каталоге
-				if os.path.isfile(root+q):
-					files.append(root+q)
+				if os.path.isfile(dir_root+q):
+					files.append(dir_root+q)
 		
 		for i in files: #конвертируем файлы в mp3 из mp4
 			if (os.path.splitext(i)[1]) == '.mp4': #возможно можно совместить с проверкой на wav
 				if not os.path.exists(add+"mp4"): #проверяем существует ли каталог mp4, если нет то генерируем и перемещаем туда файлы
 					os.mkdir(add+"mp4") #создаем каталог mp4
 	
-	# join(map(str, os.path.splitext(i))) преобразует список в строку, map применяет str ко всему списску (join работаета только со  str)
-				command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+	# join(map(str, os.path.splitext(i))) преобразует список в строку,
+	#  map применяет str ко всему списску (join работаета только со  str)
+				command = str("ffmpeg -i "+ "".join( map(str, os.path.splitext(i) ) )+" -b:a 192k -f mp3 "
+				+"".join(map(str,os.path.splitext(i)[0]))+".mp3")
 				completed=subprocess.call(command)
 
 	#if completed.returncode ==0: # если ошибок нет то переносим исходный файл в подкаталог.
@@ -599,7 +604,7 @@ class MyApp(wx.App):
 			if (os.path.splitext(i)[1]) == '.wav':
 				if not os.path.exists(add+"wav"): 
 					os.mkdir(add+"wav") 
-				command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+				command = str("ffmpeg -i "+"".join(map(str, os.path.splitext(i)))+" -b:a 192k -f mp3 "+"".join(map(str,os.path.splitext(i)[0]))+".mp3")
 				completed=subprocess.call(command)
 
 				if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
@@ -611,7 +616,7 @@ class MyApp(wx.App):
 			if (os.path.splitext(i)[1]) == '.avi':
 				if not os.path.exists(add+"avi"): 
 					os.mkdir(add+"avi") 
-				command = str("ffmpeg -i "+join(map(str, os.path.splitext(i)))+" -vn -ar 44100 -ac 2 -ab 192K -f mp3 "+join(map(str,os.path.splitext(i)[0]))+".mp3")
+				command = str("ffmpeg -i "+"".join(map(str, os.path.splitext(i)))+" -vn -ar 44100 -ac 2 -ab 192K -f mp3 "+"".join(map(str,os.path.splitext(i)[0]))+".mp3")
 				completed=subprocess.call(command)
 
 				if completed == 0: # если ошибок нет то переносим исходный файл в подкаталог.
@@ -667,9 +672,9 @@ class MyApp(wx.App):
 					f = open(filename, 'w')
 					f.write("#Инициализация_всего_плеера" + '\n')
 					f.write("#В_качестве_разделителя_используем_*" + '\n')
-					f.write("Skin*"+str(Skin)+'\n')
-					f.write("Rack*"+str(Rack)+'\n')
-					f.write("Book*"+str(Book))
+					f.write("Skin*"+str(self.ini_dic['Skin'])+'\n')
+					f.write("Rack*"+str(self.ini_dic['Rack'])+'\n')
+					f.write("Book*"+str(self.ini_dic['Book']))
 					f.close()
 					
 				#Выгружаем/закрываем программу
@@ -692,16 +697,16 @@ class MyApp(wx.App):
 				
 				if Key_Value[0] == 'root2':
 					print("выбран каталог с книгами для конвертации в pm3")
-					Converter_mp3(Key_Value[1])
+					self.Converter_mp3(Key_Value[1])
 				
 				if Key_Value[0] == 'File_skin':
 					File_skin=Key_Value[1]
 
 				if Key_Value[0] == 'root_album':
 					print("Получен адрес выбранного альбома " + str(Key_Value[1]))
-					Book = Key_Value[1]
+					Book_set = Key_Value[1]
 					if load_unload==0: #если каталог с музыкой загружен впервые  
-						B = Book(Book)
+						B = Book(Book_set)
 						load_unload=1
 						print("загружаю файл в первый раз")
 						print("load_unload=" + str(load_unload))
@@ -713,7 +718,7 @@ class MyApp(wx.App):
 						print("выгружаю музыку")
 						B.unload()
 						print("загружаю нолвую музыку")
-						B = Book(Book)
+						B = Book(Book_set)
 
 				if Key_Value[0] == 'B_Play' and root != None and play_pause == 0 and play_load==0:  
 					# первый раз загружаем файл и воспроиводим его
@@ -764,7 +769,7 @@ class MyApp(wx.App):
 		__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 		bytes = min(32, os.path.getsize(os.path.join(__location__, filename)))
 		raw = open(os.path.join(__location__, filename), 'rb').read(bytes)
-
+		s=0
 		if raw.startswith(codecs.BOM_UTF8):
 			encoding = 'utf-8-sig'
 		else:
@@ -772,35 +777,34 @@ class MyApp(wx.App):
 			encoding = result['encoding']
 
 		with open(os.path.join(__location__, filename), 'r', encoding=encoding) as file: #Читаем файл
-			lines = file.read().split('\n')	#не читаем комментарии (начинаются с символа #)
+			lines = file.read().split('\n')	
 			self.ini_dic = {} # Создаем пустой словарь
 	#	file.close() #возможно после with open... файл автоматически закрывается
 		for line in lines: # Проходимся по каждой строчке
-				if line[0]!='#':
+				if line[0]!='#': #не читаем комментарии (начинаются с символа #)
 					key,value = line.split('*') # Разделяем каждую строку по *
 					print(str(key)+"  "+str(value))
 					self.ini_dic.update({key:value})
 		#Проверяем состав полей и инициируем если не определены (ну малоли, вдруг кто попортил)
 		#Выбор полки книжной не проверяем - при инициализации формы отправляем на выбор полки
 		#получаем название книги
-		book_1=str(self.ini_dic.get('Book', "None")) #поумолчанию альбом выбирается = 0
-		if book_1!=None:
+		book_1=str(self.ini_dic.get('Book', "None")) #выбираем альбом
+		print("Инициализация Book="+str(book_1))
+		Rack=str(self.ini_dic.get('Rack', "None")) #назначаем путь до стеллажа с книгами, если его нет то None, малоли поломали путь
+		print("Инициализация Rack="+str(Rack))
+		if os.path.isdir(str(Rack+book_1)) : #если существует каталог с книгой (если он None то наверное тоже пройдет,но пофиг
+			#не - не надо делать тупых названий каталогов. вот)
 			dirs = []
-			dir_root = []
-			Rack=str(self.ini_dic.get('Rack', "None")) #назначаем путь до стеллажа с книгами, если его нет то None, малоли поломали путь
-			if Rack!=None:
-				dir_root=os.listdir(Rack)
-				for q in dir_root:
-					if os.path.isdir(Rack+q):
+#			dir_root = []
+			dir_root=os.listdir(Rack)
+			for q in dir_root:
+				if os.path.isdir(Rack+q):
 						dirs.append(Rack+q)
 				dirs.sort() #сортируем список каталогов
-				try:
-					s=dirs.index(book_1)
-				except ValueError:
-					self.ini_dic['Book']=0 #если каталог с книгой на полке не найден то =0	
-			else: self.ini_dic['Book']=0 #если полка не определена то = 0	
-		else: self.ini_dic['Book']=0 #если книга не определена то = 0
-			
+			s=dirs.index(book_1) #ищем папку с книгой по названию книги
+		#проверяем наличие корневого аталога - полки
+		if not(os.path.isdir(Rack)): self.ini_dic['Rack']=None
+		self.ini_dic['Book']=s #если каталог с книгой на полке не найден то s равна номеру каталога, если нет то равна 0	
 		self.frame = Form_player(filename=str(self.ini_dic.get('Skin', "star_54.txt")))  # По умолчанию используем скин "Звезда 54"
 		self.frame.Show(True)
 		self.SetTopWindow(self.frame)
